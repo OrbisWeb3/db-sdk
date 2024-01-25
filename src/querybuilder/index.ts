@@ -81,32 +81,6 @@ export class QueryBuilder {
     node?: string | number
   ): Promise<StatementExecuteResult> {
 
-    // Update table name on select to convert it to the actual model id
-    if(this.isSelectStatement(query)) {
-      let modelId;
-      const tableName = (query as any)._single.table; // Get the table name from the query
-      console.log("tableName:", tableName);
-      // Check if developer used directly a model id or a readable table name
-      if(tableName.startsWith("kjzl6")) {
-        modelId = tableName;
-      } else {
-        // Get the model ID mapped to this table name in instance settings
-        modelId = this.#orbis.node.getTableModelId(tableName);
-        console.log("modelId retrieved from getTableModelId is:", modelId);
-
-        // Force retry to load node's metadata to retrieve latest mapping and try again
-        if(!modelId) {
-          console.log("Couldn't retrieve modelId for this table name, retrying...");
-          await this.#orbis.node.metadata();
-          console.log("Forced reload the node's metadata.");
-          modelId = this.#orbis.node.getTableModelId(tableName);
-          console.log("After retry, modelId is:", modelId);;
-        }
-      }
-       // Set the table to model ID
-       (query as any)._single.table = modelId;
-    }
-
     if ("statementType" in query) {
       if (query.statementType === "CERAMIC_INSERT" && "document" in query) {
         const document = await query.document();
@@ -159,7 +133,6 @@ export class QueryBuilder {
     }
 
     const { sql, bindings: params } = query.toSQL().toNative();
-
     return this.#orbis.node.query(sql, params as Array<any>);
   }
 

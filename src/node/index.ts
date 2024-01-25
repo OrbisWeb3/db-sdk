@@ -206,14 +206,9 @@ export class OrbisNode {
 
   // Add a method to get the model ID for a human-readable table name
   getTableModelId(tableName: string): string | undefined {
-    console.log("Enter getTableModelId with:", tableName);
     const modelsMapping = this.node?.metadata?.models_mapping;
-    console.log("modelsMapping:", modelsMapping);
     for (const [id, name] of Object.entries(modelsMapping || {})) {
       if (name === tableName) {
-        console.log("Found table:");
-        console.log("id:", id);
-        console.log("name:", name);
         return id;
       }
     }
