@@ -160,6 +160,10 @@ export class OrbisNode {
       };
     } catch(e) {
       console.log("Couldn't retrieve metadata for this OrbisDB instace.");
+      return {
+        metadata: null,
+        node: this.node,
+      };
     }
   }
 
