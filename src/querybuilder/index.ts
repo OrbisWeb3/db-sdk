@@ -83,13 +83,25 @@ export class QueryBuilder {
 
     // Update table name on select to convert it to the actual model id
     if(this.isSelectStatement(query)) {
+      let modelId;
       const tableName = (query as any)._single.table; // Get the table name from the query
-      let modelId = this.#orbis.node.getTableModelId(tableName); // Get the model ID
       
-      // Force retry to load node's metadata to retrieve latest mapping and try again
-      if(!modelId) {
-        await this.#orbis.node.metadata();
+      // Check if developer used directly a model id or a readable table name
+      if(tableName.startsWith("kjzl6")) {
+        modelId = tableName;
+      } else {
+        // Get the model ID mapped to this table name in instance settings
         modelId = this.#orbis.node.getTableModelId(tableName);
+        console.log("modelId retrieved from getTableModelId is:", tableName);
+
+        // Force retry to load node's metadata to retrieve latest mapping and try again
+        if(!modelId) {
+          console.log("Couldn't retrieve modelId for this table name, retrying...");
+          await this.#orbis.node.metadata();
+          console.log("Forced reload the node's metadata.");
+          modelId = this.#orbis.node.getTableModelId(tableName);
+          console.log("After retry, modelId is:", modelId);;
+        }
       }
        // Set the table to model ID
        (query as any)._single.table = modelId;

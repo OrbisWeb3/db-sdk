@@ -159,7 +159,7 @@ export class OrbisNode {
         node,
       };
     } catch(e) {
-      console.log("Couldn't retrieve metadata for this OrbisDB instace.");
+      console.log("Couldn't retrieve metadata for this OrbisDB instance.");
       return {
         metadata: null,
         node: this.node,
