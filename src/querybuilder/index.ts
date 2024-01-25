@@ -85,14 +85,14 @@ export class QueryBuilder {
     if(this.isSelectStatement(query)) {
       let modelId;
       const tableName = (query as any)._single.table; // Get the table name from the query
-      
+      console.log("tableName:", tableName);
       // Check if developer used directly a model id or a readable table name
       if(tableName.startsWith("kjzl6")) {
         modelId = tableName;
       } else {
         // Get the model ID mapped to this table name in instance settings
         modelId = this.#orbis.node.getTableModelId(tableName);
-        console.log("modelId retrieved from getTableModelId is:", tableName);
+        console.log("modelId retrieved from getTableModelId is:", modelId);
 
         // Force retry to load node's metadata to retrieve latest mapping and try again
         if(!modelId) {
