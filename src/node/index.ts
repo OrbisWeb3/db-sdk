@@ -1,9 +1,14 @@
 import { MethodStatuses } from "../types/results.js";
 import { ForceIndexingResult, OrbisConfig } from "../index.js";
 
+type ModelMapping = {
+  [key: string]: string;
+};
+
 type NodeInformation = {
   version: string;
   models: Array<{ name: string; stream_id: string }>;
+  models_mapping: ModelMapping;
   plugins: Array<{ id: string; name: string; hooks: Array<string> }>;
 };
 
@@ -183,6 +188,22 @@ export class OrbisNode {
       plugins: newInfo?.plugins,
       node,
     };
+  }
+
+   // Add a method to get the human-readable table name for a model ID
+   getTableName(id: string): string {
+    return this.node?.metadata?.models_mapping[id] as string;
+  }
+
+  // Add a method to get the model ID for a human-readable table name
+  getTableModelId(tableName: string): string | undefined {
+    const modelsMapping = this.node?.metadata?.models_mapping;
+    for (const [id, name] of Object.entries(modelsMapping || {})) {
+      if (name === tableName) {
+        return id;
+      }
+    }
+    return undefined;
   }
 }
 

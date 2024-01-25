@@ -58,6 +58,12 @@ export class QueryBuilder {
     { document: Record<string, any> } & ({ error: string } | { id: string })
   > {
     try {
+      // Retrieve clean table name based on the model id passed or return model ID
+      let modelId = this.#orbis.node.getTableModelId(model) as string;
+      if(!modelId || modelId == undefined) {
+        modelId = model;
+      }
+
       const { id } = await this.#orbis.ceramic.createDocument({
         model,
         content,
