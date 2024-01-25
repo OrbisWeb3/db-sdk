@@ -148,15 +148,19 @@ export class OrbisNode {
   }
 
   async metadata() {
-    const result = await metadata(this.node);
-    this.node.metadata = result;
-
-    const { metadata: info, ...node } = this.node;
-
-    return {
-      metadata: info,
-      node,
-    };
+    try {
+      const result = await metadata(this.node);
+      this.node.metadata = result;
+  
+      const { metadata: info, ...node } = this.node;
+  
+      return {
+        metadata: info,
+        node,
+      };
+    } catch(e) {
+      console.log("Couldn't retrieve metadata for this OrbisDB instace.");
+    }
   }
 
   async models() {
