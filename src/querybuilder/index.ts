@@ -80,6 +80,18 @@ export class QueryBuilder {
     query: SelectStatement | InsertStatement | BulkInsertStatement,
     node?: string | number
   ): Promise<StatementExecuteResult> {
+
+    // Update table name on select to convert it to the actual model id
+    if(this.isSelectStatement(query)) {
+      const tableName = (query as any)._single.table; // Get the table name from the query
+      let modelId = this.#orbis.node.getTableModelId(tableName); // Get the model ID
+      if(!modelId) {
+        modelId = tableName;
+      }
+       // Set the table to model ID
+       (query as any)._single.table = modelId;
+    }
+
     if ("statementType" in query) {
       if (query.statementType === "CERAMIC_INSERT" && "document" in query) {
         const document = await query.document();
@@ -128,24 +140,16 @@ export class QueryBuilder {
         };
       }
 
-      // If it's a SELECT statement, convert table name to model ID
-      if (query.statementType === "SELECT") {
-        const selectQuery = query as SelectStatement; // Cast to SelectStatement
-        console.log("In Select: selectQuery:", selectQuery);
-        const tableName = selectQuery._single.table; // Get the table name from the query
-        console.log("In Select: tableName:", tableName);
-        const modelId = this.#orbis.node.getTableModelId(tableName); // Get the model ID
-        console.log("In Select: modelId:", modelId);
-        selectQuery._single.table = modelId; // Set the table to model ID
-        const { sql, bindings: params } = selectQuery.toSQL().toNative(); // Generate SQL query
-        return this.#orbis.node.query(sql, params as Array<any>);
-    }
-
       throw "Unsupported statement type " + query.statementType;
     }
 
     const { sql, bindings: params } = query.toSQL().toNative();
 
     return this.#orbis.node.query(sql, params as Array<any>);
+  }
+
+  // Will check if query is a select statement
+  isSelectStatement(query: any): query is SelectStatement {
+    return query._method === "select";
   }
 }

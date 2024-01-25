@@ -123,6 +123,7 @@ export class OrbisNode {
 
   constructor(node: NodeContext) {
     this.node = node;
+    this.metadata();
   }
 
   async query(
