@@ -52,20 +52,21 @@ export class QueryBuilder {
   }
 
   async #insert(
-    model: string,
+    table: string,
     content: Record<string, any>
   ): Promise<
     { document: Record<string, any> } & ({ error: string } | { id: string })
   > {
     try {
       // Retrieve clean table name based on the model id passed or return model ID
-      let modelId = this.#orbis.node.getTableModelId(model) as string;
+      let modelId = this.#orbis.node.getTableModelId(table) as string;
       if(!modelId || modelId == undefined) {
-        modelId = model;
+        modelId = table;
       }
 
+      // Creating stream on Ceramic using the model retrieved from the mapping
       const { id } = await this.#orbis.ceramic.createDocument({
-        model,
+        model: modelId,
         content,
       });
 
@@ -126,6 +127,19 @@ export class QueryBuilder {
           success,
         };
       }
+
+      // If it's a SELECT statement, convert table name to model ID
+      if (query.statementType === "SELECT") {
+        const selectQuery = query as SelectStatement; // Cast to SelectStatement
+        console.log("In Select: selectQuery:", selectQuery);
+        const tableName = selectQuery._single.table; // Get the table name from the query
+        console.log("In Select: tableName:", tableName);
+        const modelId = this.#orbis.node.getTableModelId(tableName); // Get the model ID
+        console.log("In Select: modelId:", modelId);
+        selectQuery._single.table = modelId; // Set the table to model ID
+        const { sql, bindings: params } = selectQuery.toSQL().toNative(); // Generate SQL query
+        return this.#orbis.node.query(sql, params as Array<any>);
+    }
 
       throw "Unsupported statement type " + query.statementType;
     }

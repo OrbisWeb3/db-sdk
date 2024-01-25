@@ -190,8 +190,8 @@ export class OrbisNode {
     };
   }
 
-   // Add a method to get the human-readable table name for a model ID
-   getTableName(id: string): string {
+  // Add a method to get the human-readable table name for a model ID
+  getTableName(id: string): string {
     return this.node?.metadata?.models_mapping[id] as string;
   }
 
