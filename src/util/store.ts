@@ -6,18 +6,18 @@ class MemoryStore implements IStore {
   memoryStore: { [key: string]: any } = {};
 
   getItem(key: string) {
-    console.warn(this.message);
+    //console.warn(this.message);
     return this.memoryStore[key];
   }
 
   setItem(key: string, value: any): boolean {
-    console.warn(this.message);
+    //console.warn(this.message);
     this.memoryStore[key] = value;
     return false;
   }
 
   removeItem(key: string): boolean {
-    console.warn(this.message);
+    //console.warn(this.message);
     delete this.memoryStore[key];
     return false;
   }
