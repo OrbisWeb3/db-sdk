@@ -36,6 +36,7 @@
   ],
   "exports": {
     ".": "./dist/index.js",
+    "./query": "./dist/querybuilder/statements/operators.js",
     "./auth": "./dist/auth/index.js",
     "./util": "./dist/util/index.js"
   },
@@ -57,7 +58,7 @@
     "did-session": "^2.0.1",
     "dids": "^4.0.3",
     "jsonschema": "^1.4.1",
-    "knex": "^3.1.0",
+    "sqlstring": "^2.3.3",
     "uint8arrays": "^4.0.3"
   }
 }
