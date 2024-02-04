@@ -1,27 +1,9 @@
-import JSONSqlBuilder from "json-sql-builder2";
-
 import { OrbisDB } from "../../index.js";
 
 import { $in } from "./operators.js";
 import { StatementHistory } from "./historyProvider.js";
 
-// @ts-ignore
-import PostgreSQL from "json-sql-builder2/lib/languages/PostgreSQL.mjs";
-
-import path from "path";
-import { fileURLToPath } from "url";
 import { catchError } from "../../util/tryit.js";
-
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
-
-const jsonSqlBuilder = new JSONSqlBuilder();
-
-await jsonSqlBuilder.initialize(PostgreSQL);
-
-const ilikepath = new URL("./sql/ilike.cjs", import.meta.url);
-
-// jsonSqlBuilder._register(ilikepath.toString()); // `${__dirname}${path.sep}sql${path.sep}ilike.cjs`);
 
 export type OrderByParams =
   | [string, "asc" | "desc"]
