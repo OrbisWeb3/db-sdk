@@ -285,7 +285,24 @@ export class CeramicStorage implements IOrbisStorage {
     };
   }
 
-  async createDocument(params: NewOrbisDocument): Promise<{ id: string }> {
+  isStreamIdString(streamId: string): boolean {
+    try {
+      const _ = StreamID.fromString(streamId);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  isStreamId(streamId: string | StreamID): boolean {
+    if (streamId instanceof StreamID) {
+      return true;
+    }
+
+    return this.isStreamIdString(streamId);
+  }
+
+  async createDocument(params: NewOrbisDocument): Promise<OrbisDocument> {
     if (!this.#session)
       throw new OrbisError(
         "[Ceramic] Unable to create document, no active Storage session."
@@ -295,19 +312,38 @@ export class CeramicStorage implements IOrbisStorage {
       this.client,
       params.content,
       {
-        model: StreamID.fromString(params.model),
+        model:
+          typeof params.model === "string"
+            ? StreamID.fromString(params.model)
+            : params.model,
+        ...(params.context
+          ? {
+              context:
+                typeof params.context === "string"
+                  ? StreamID.fromString(params.context)
+                  : params.context,
+            }
+          : {}),
       }
     );
 
     return {
       id: doc.id.toString(),
+      content: doc.content as Record<string, any>,
+      model: doc.metadata.model.toString(),
+      context:
+        typeof params.context === "string"
+          ? params.context
+          : params.context?.toString(),
+      controller: doc.metadata.controller as DIDAny,
+      metadata: params.metadata || {},
     };
   }
 
   async updateDocument(
     id: string,
     params: NewOrbisDocument
-  ): Promise<{ id: string }> {
+  ): Promise<OrbisDocument> {
     if (!this.#session)
       throw new OrbisError(
         "[Ceramic] Unable to update document, no active Storage session."
@@ -319,6 +355,14 @@ export class CeramicStorage implements IOrbisStorage {
 
     return {
       id: doc.id.toString(),
+      content: doc.content as Record<string, any>,
+      model: doc.metadata.model.toString(),
+      context:
+        typeof params.context === "string"
+          ? params.context
+          : params.context?.toString(),
+      controller: doc.metadata.controller as DIDAny,
+      metadata: params.metadata || {},
     };
   }
 
