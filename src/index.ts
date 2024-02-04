@@ -11,7 +11,6 @@ import {
 
 /** Utils */
 import { OrbisNodeManager } from "./node/index.js";
-import { defaultConfig } from "./util/config.js";
 import { Store } from "./util/store.js";
 import { CeramicStorage } from "./ceramic/index.js";
 import { OrbisError } from "./util/results.js";
@@ -48,15 +47,7 @@ export class OrbisDB {
   insertBulk: (model: string) => BulkInsertStatement;
 
   // remove default config (or use testnet)
-  constructor(config: OrbisConfig = defaultConfig) {
-    if (!config.nodes) {
-      config.nodes = defaultConfig.nodes;
-    }
-
-    if (!config.ceramic) {
-      config.ceramic = defaultConfig.ceramic;
-    }
-
+  constructor(config: OrbisConfig) {
     this.#ceramic = new CeramicStorage(config.ceramic);
     this.#nodes = new OrbisNodeManager(config.nodes);
     this.#store = new Store(config.localStore);
