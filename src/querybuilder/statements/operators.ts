@@ -11,11 +11,11 @@ const $notIn = (...conditionParams: Array<string | number | boolean>) => ({
 });
 
 const $sum = (field: string, alias?: string, distinct?: boolean) => ({
-  [alias ?? field]: { $sum: { $expr: `~~${field}`, $distinct: distinct } },
+  [alias ?? field]: { $sum: { $expr: field, $distinct: distinct } },
 });
 
 const $count = (field: string, alias?: string, distinct?: boolean) => ({
-  [alias ?? field]: { $count: { $expr: `~~${field}`, $distinct: distinct } },
+  [alias ?? field]: { $count: { $expr: field, $distinct: distinct } },
 });
 
 const $and = (...conditions: any) => ({
@@ -25,12 +25,6 @@ const $and = (...conditions: any) => ({
 const $or = (...conditions: any) => ({
   $or: conditions,
 });
-
-const $not = (condition: Record<string, any>) => ({
-  $not: condition,
-});
-
-// const $in = "$in";
 
 const $eq = (compareValue: string | number) => ({ $eq: compareValue });
 
@@ -44,9 +38,17 @@ const $lt = (compareValue: number) => ({ $lt: compareValue });
 
 const $lte = (compareValue: number) => ({ $lte: compareValue });
 
+const $contains = (compareValue: string) => ({ $contains: compareValue });
+
+const $icontains = (compareValue: string) => ({ $icontains: compareValue });
+
 const $startsWith = (compareValue: string) => ({ $startsWith: compareValue });
 
+const $istartsWith = (compareValue: string) => ({ $istartsWith: compareValue });
+
 const $endsWith = (compareValue: string) => ({ $endsWith: compareValue });
+
+const $iendsWith = (compareValue: string) => ({ $iendsWith: compareValue });
 
 const $like = (compareValue: string) => ({ $like: compareValue });
 
@@ -55,7 +57,6 @@ const $ilike = (compareValue: string) => ({ $ilike: compareValue });
 export {
   $and,
   $or,
-  $not,
   inOperator as $in,
   $notIn,
   $between,
@@ -67,8 +68,12 @@ export {
   $gte,
   $lt,
   $lte,
+  $contains,
   $startsWith,
   $endsWith,
+  $icontains,
+  $istartsWith,
+  $iendsWith,
   $like,
   $ilike,
 };

@@ -58,7 +58,6 @@
     "did-session": "^2.0.1",
     "dids": "^4.0.3",
     "jsonschema": "^1.4.1",
-    "sqlstring": "^2.3.3",
     "uint8arrays": "^4.0.3"
   }
 }

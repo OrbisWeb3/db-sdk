@@ -16,7 +16,7 @@ export class QueryBuilder {
   #orbis: OrbisDB;
   #models: Record<string, Record<string, any>>;
 
-  select: (...fields: Array<string | any>) => SelectStatement;
+  select: (...columns: Array<string | any>) => SelectStatement;
   insert: (model: string) => InsertStatement;
   insertBulk: (model: string) => BulkInsertStatement;
 
@@ -28,9 +28,9 @@ export class QueryBuilder {
     this.insertBulk = (model: string) =>
       new BulkInsertStatement(this.#orbis, model);
 
-    this.select = (...fields: Array<string | any>) => {
+    this.select = (...columns: Array<string | any>) => {
       const statement = new SelectStatement(this.#orbis);
-      if (fields) statement.fields(...fields);
+      if (columns) statement.columns(...columns);
       return statement;
     };
   }

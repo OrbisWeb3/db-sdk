@@ -2,22 +2,20 @@ import { OrbisDB } from "../../index.js";
 
 import { $in } from "./operators.js";
 import { StatementHistory } from "./historyProvider.js";
+import { OrderByParams, SqlSelectBuilder } from "./sqlbuild/index.js";
 
 import { catchError } from "../../util/tryit.js";
 
-export type OrderByParams =
-  | [string, "asc" | "desc"]
-  | Array<[string, "asc" | "desc"]>;
-
+// TODO: Improve typing for operators (and enable nested queries)
 export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   #orbis: OrbisDB;
   #table?: string;
-  #fields: Set<string> = new Set();
+  #columns: Set<string> = new Set();
   #limit?: number;
   #offset?: number;
   #context?: string;
   #where?: Record<string, any>;
-  #orderBy?: OrderByParams;
+  #orderBy?: Array<OrderByParams>;
 
   constructor(orbis: OrbisDB) {
     super();
@@ -39,24 +37,24 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
     return this;
   }
 
-  field(field: string | any) {
-    this.#fields.add(field);
+  column(column: string | any) {
+    this.#columns.add(column);
     return this;
   }
 
-  fields(...fields: Array<string | any>) {
-    const _fields = new Set(fields);
-    this.#fields = new Set([...this.#fields, ..._fields]);
+  columns(...columns: Array<string | any>) {
+    const _columns = new Set(columns);
+    this.#columns = new Set([...this.#columns, ..._columns]);
     return this;
   }
 
-  deselectField(field: string) {
-    this.#fields.delete(field);
+  deselectColumn(column: string) {
+    this.#columns.delete(column);
     return this;
   }
 
-  clearFields() {
-    this.#fields = new Set();
+  clearColumns() {
+    this.#columns = new Set();
     return this;
   }
 
@@ -92,7 +90,7 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
     return this;
   }
 
-  orderBy(params: OrderByParams) {
+  orderBy(params: OrderByParams | Array<OrderByParams>) {
     if (this.#orderBy) {
       this.#warnUnique("orderBy");
     }
@@ -107,7 +105,7 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
       return this;
     }
 
-    this.#orderBy = params;
+    this.#orderBy = params as Array<OrderByParams>;
     return this;
   }
 
@@ -143,21 +141,9 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
       ...((this.#context && { _metadata_context: this.#context }) || {}),
     };
 
-    // TODO: multiple same-level $not, $or
-    return jsonSqlBuilder.$select({
-      $from: this.#table,
-      ...(this.#fields.size
-        ? {
-            $columns: Object.fromEntries(
-              Array.from(this.#fields).map((v: string | any) => {
-                if (typeof v === "string") {
-                  return [v, true];
-                }
-                return Object.entries(v)[0];
-              })
-            ),
-          }
-        : {}),
+    const builder = new SqlSelectBuilder({
+      $table: this.#table,
+      $columns: Array.from(this.#columns),
       $where: this.#checkForImplicitIn(
         Object.keys(whereClause).length > 1
           ? {
@@ -167,21 +153,12 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
             }
           : whereClause
       ),
-      ...((this.#orderBy && {
-        $orderBy: Object.fromEntries(
-          (this.#orderBy as any).map((v: any) => [v[0], v[1] === "asc"])
-        ),
-      }) ||
-        {}),
-      ...((this.#limit && {
-        $limit: this.#limit,
-      }) ||
-        {}),
-      ...((this.#offset && {
-        $offset: this.#offset,
-      }) ||
-        {}),
+      $orderBy: this.#orderBy,
+      $limit: this.#limit,
+      $offset: this.#offset,
     });
+
+    return builder.build();
   }
 
   get runs() {
@@ -189,8 +166,12 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   async run() {
+    if (!this.#table) {
+      throw "[QueryBuilder:select] Cannot run a select statement without a specified table.";
+    }
+
     const timestamp = Date.now();
-    const { sql: query, values: params } = this.build();
+    const { query, params } = this.build();
 
     const [result, error] = await catchError(() =>
       this.#orbis.node.query<T>(query, params)
