@@ -2,7 +2,7 @@ import { MethodStatuses } from "../types/results.js";
 import { ForceIndexingResult, OrbisConfig } from "../index.js";
 
 type ModelMapping = {
-  [key: string]: string;
+  [modelId: string]: string;
 };
 
 type NodeInformation = {
@@ -50,7 +50,7 @@ async function ping(node: NodeContext): Promise<boolean> {
   return false;
 }
 
-async function metadata(node: NodeContext): Promise<NodeInformation> {
+async function fetchMetadata(node: NodeContext): Promise<NodeInformation> {
   const response = await apiFetch(node, "/api/metadata");
   return (await response.json()) as NodeInformation;
 }
@@ -123,15 +123,14 @@ export class OrbisNode {
 
   constructor(node: NodeContext) {
     this.node = node;
-    this.metadata();
   }
 
-  async query(
+  async query<T = Record<string, any>>(
     query: string,
     params: Array<any>
   ): Promise<{
     columns: Array<string>;
-    rows: Array<Record<string, any>>;
+    rows: Array<T>;
   }> {
     return queryDatabase(this.node, query, params);
   }
@@ -147,18 +146,26 @@ export class OrbisNode {
     };
   }
 
-  async metadata() {
-    try {
-      const result = await metadata(this.node);
-      this.node.metadata = result;
-  
-      const { metadata: info, ...node } = this.node;
-  
+  async metadata(forceRefresh: boolean = false) {
+    if (this.node.metadata && !forceRefresh) {
+      const { metadata, ...node } = this.node;
       return {
-        metadata: info,
+        metadata,
         node,
       };
-    } catch(e) {
+    }
+
+    try {
+      const result = await fetchMetadata(this.node);
+      this.node.metadata = result;
+
+      const { metadata, ...node } = this.node;
+
+      return {
+        metadata,
+        node,
+      };
+    } catch (e) {
       console.log("Couldn't retrieve metadata for this OrbisDB instance.");
       return {
         metadata: null,
@@ -168,51 +175,45 @@ export class OrbisNode {
   }
 
   async models() {
-    const { metadata: info, ...node } = this.node;
-    if (info) {
-      return {
-        models: info.models,
-        node,
-      };
-    }
+    const { metadata, ...node } = await this.metadata();
 
-    const { metadata: newInfo } = await this.metadata();
     return {
-      models: newInfo?.models,
+      models: metadata?.models,
       node,
     };
   }
 
   async plugins() {
-    const { metadata: info, ...node } = this.node;
-    if (info) {
-      return {
-        plugins: info.plugins,
-        node,
-      };
-    }
-
-    const { metadata: newInfo } = await this.metadata();
+    const { metadata, ...node } = await this.metadata();
     return {
-      plugins: newInfo?.plugins,
+      plugins: metadata?.plugins,
       node,
     };
   }
 
   // Add a method to get the human-readable table name for a model ID
-  getTableName(id: string): string {
-    return this.node?.metadata?.models_mapping[id] as string;
+  async getTableName(id: string) {
+    const { metadata, ...node } = await this.metadata();
+
+    return {
+      tableName: metadata?.models_mapping[id],
+      node,
+    };
   }
 
   // Add a method to get the model ID for a human-readable table name
-  getTableModelId(tableName: string): string | undefined {
-    const modelsMapping = this.node?.metadata?.models_mapping;
-    for (const [id, name] of Object.entries(modelsMapping || {})) {
-      if (name === tableName) {
-        return id;
-      }
-    }
-    return undefined;
+  async getTableModelId(tableName: string) {
+    const { metadata, ...node } = this.node;
+
+    const modelsMapping = metadata?.models_mapping;
+    const modelId = Object.keys(modelsMapping || {}).find((key: string) => {
+      return modelsMapping && tableName === modelsMapping[key];
+    });
+
+    return {
+      modelId,
+      node,
+    };
   }
 }
 
