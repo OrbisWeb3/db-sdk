@@ -26,7 +26,7 @@ import { QueryBuilder, StatementExecuteResult } from "./querybuilder/index.js";
 //   SelectStatement,
 // } from "./querybuilder/statements/select.js";
 import {
-  BulkInsertStatement,
+  // BulkInsertStatement,
   InsertStatement,
 } from "./querybuilder/statements/insert.js";
 import { SelectStatement } from "./querybuilder/statements/select.js";
@@ -44,7 +44,7 @@ export class OrbisDB {
 
   select: (...fields: Array<string | any>) => SelectStatement;
   insert: (model: string) => InsertStatement;
-  insertBulk: (model: string) => BulkInsertStatement;
+  // insertBulk: (model: string) => BulkInsertStatement;
 
   // remove default config (or use testnet)
   constructor(config: OrbisConfig) {
@@ -59,7 +59,7 @@ export class OrbisDB {
     // this.execute = this.query.execute.bind(this.query);
     this.select = this.query.select.bind(this.query);
     this.insert = this.query.insert.bind(this.query);
-    this.insertBulk = this.query.insertBulk.bind(this.query);
+    // this.insertBulk = this.query.insertBulk.bind(this.query);
   }
 
   get ceramic() {

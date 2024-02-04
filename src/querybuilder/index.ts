@@ -1,7 +1,7 @@
 import { OrbisDB } from "../index.js";
 import { SelectStatement } from "./statements/select.js";
 
-import { InsertStatement, BulkInsertStatement } from "./statements/insert.js";
+import { InsertStatement } from "./statements/insert.js";
 
 export type StatementExecuteResult = Promise<
   | { columns: Array<string>; rows: Array<Record<string, any>> }
@@ -18,15 +18,16 @@ export class QueryBuilder {
 
   select: (...columns: Array<string | any>) => SelectStatement;
   insert: (model: string) => InsertStatement;
-  insertBulk: (model: string) => BulkInsertStatement;
+  // insertBulk: (model: string) => BulkInsertStatement;
 
   constructor(orbis: OrbisDB) {
     this.#orbis = orbis;
     this.#models = {};
 
     this.insert = (model: string) => new InsertStatement(this.#orbis, model);
-    this.insertBulk = (model: string) =>
-      new BulkInsertStatement(this.#orbis, model);
+
+    // this.insertBulk = (model: string) =>
+    // new BulkInsertStatement(this.#orbis, model);
 
     this.select = (...columns: Array<string | any>) => {
       const statement = new SelectStatement(this.#orbis);

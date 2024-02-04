@@ -2,68 +2,68 @@ import { validate as validateJsonSchema } from "jsonschema";
 import { StatementHistory } from "./historyProvider.js";
 import { OrbisDB } from "../../index.js";
 
-export class BulkInsertStatement<
-  T = Record<string, any>,
-> extends StatementHistory {
-  #orbis: OrbisDB;
-  #model: string;
-  #context?: string;
-  #values: Array<T> = [];
+// export class BulkInsertStatement<
+//   T = Record<string, any>,
+// > extends StatementHistory {
+//   #orbis: OrbisDB;
+//   #model: string;
+//   #context?: string;
+//   #values: Array<T> = [];
 
-  constructor(orbis: OrbisDB, model: string) {
-    super();
+//   constructor(orbis: OrbisDB, model: string) {
+//     super();
 
-    this.#orbis = orbis;
-    this.#model = model;
-  }
+//     this.#orbis = orbis;
+//     this.#model = model;
+//   }
 
-  async documents(): Promise<Array<T>> {
-    return this.#values;
-  }
+//   async documents(): Promise<Array<T>> {
+//     return this.#values;
+//   }
 
-  get model(): string {
-    return this.#model;
-  }
+//   get model(): string {
+//     return this.#model;
+//   }
 
-  async validate(): Promise<
-    | { valid: true }
-    | {
-        valid: false;
-        errors: Array<{ document: T; error: string }>;
-      }
-  > {
-    const schema = await this.#orbis.query.fetchModelSchema(this.model);
-    const results = this.#values.map((value) =>
-      validateJsonSchema(value, schema)
-    );
+//   async validate(): Promise<
+//     | { valid: true }
+//     | {
+//         valid: false;
+//         errors: Array<{ document: T; error: string }>;
+//       }
+//   > {
+//     const schema = await this.#orbis.query.fetchModelSchema(this.model);
+//     const results = this.#values.map((value) =>
+//       validateJsonSchema(value, schema)
+//     );
 
-    if (results.some((v) => !v.valid)) {
-      return {
-        valid: false,
-        errors: results
-          .filter((v) => !v.valid)
-          .map((v) => ({ document: v.instance, error: v.errors.join(", ") })),
-      };
-    }
+//     if (results.some((v) => !v.valid)) {
+//       return {
+//         valid: false,
+//         errors: results
+//           .filter((v) => !v.valid)
+//           .map((v) => ({ document: v.instance, error: v.errors.join(", ") })),
+//       };
+//     }
 
-    return { valid: true };
-  }
+//     return { valid: true };
+//   }
 
-  value(v: T): BulkInsertStatement<T> {
-    this.#values = [...this.#values, v];
-    return this;
-  }
+//   value(v: T): BulkInsertStatement<T> {
+//     this.#values = [...this.#values, v];
+//     return this;
+//   }
 
-  values(v: T | Array<T>): BulkInsertStatement<T> {
-    this.#values = [...this.#values, ...(Array.isArray(v) ? v : [v])];
-    return this;
-  }
+//   values(v: T | Array<T>): BulkInsertStatement<T> {
+//     this.#values = [...this.#values, ...(Array.isArray(v) ? v : [v])];
+//     return this;
+//   }
 
-  context(context: string) {
-    this.#context = context;
-    return this;
-  }
-}
+//   context(context: string) {
+//     this.#context = context;
+//     return this;
+//   }
+// }
 
 export class InsertStatement<T = Record<string, any>> extends StatementHistory {
   #orbis: OrbisDB;
