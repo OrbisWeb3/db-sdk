@@ -13,7 +13,7 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   #columns: Set<string> = new Set();
   #limit?: number;
   #offset?: number;
-  #context?: string;
+  #contexts: Array<string> = [];
   #where?: Record<string, any>;
   #orderBy?: Array<OrderByParams>;
 
@@ -77,7 +77,20 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   context(context: string) {
-    this.#context = context;
+    if (this.#contexts.length) {
+      this.#warnUnique("context");
+    }
+
+    this.#contexts = [context];
+    return this;
+  }
+
+  contexts(...contexts: Array<string>) {
+    if (this.#contexts.length) {
+      this.#warnUnique("contexts");
+    }
+
+    this.#contexts = contexts;
     return this;
   }
 
@@ -136,9 +149,14 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   build() {
+    if (!this.#table) {
+      throw "[QueryBuilder:select] Cannot build a select statement without a specified table.";
+    }
+
     const whereClause = {
       ...(this.#where || {}),
-      ...((this.#context && { _metadata_context: this.#context }) || {}),
+      ...((this.#contexts.length && { _metadata_context: this.#contexts }) ||
+        {}),
     };
 
     const builder = new SqlSelectBuilder({
@@ -166,10 +184,6 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   async run() {
-    if (!this.#table) {
-      throw "[QueryBuilder:select] Cannot run a select statement without a specified table.";
-    }
-
     const timestamp = Date.now();
     const { query, params } = this.build();
 
