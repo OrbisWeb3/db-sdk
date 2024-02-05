@@ -1,16 +1,9 @@
 import { OrbisDB } from "../index.js";
 import { SelectStatement } from "./statements/select.js";
-
 import { InsertStatement } from "./statements/insert.js";
+import * as Operators from "./statements/operators.js";
 
-export type StatementExecuteResult = Promise<
-  | { columns: Array<string>; rows: Array<Record<string, any>> }
-  | {
-      errors: Array<{ document: Record<string, any>; error: string }>;
-      success: Array<{ document: Record<string, any>; id: string }>;
-    }
-  | ({ document: Record<string, any> } & ({ error: string } | { id: string }))
->;
+export { SelectStatement, InsertStatement, Operators };
 
 export class QueryBuilder {
   #orbis: OrbisDB;

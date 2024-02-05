@@ -36,7 +36,7 @@
   ],
   "exports": {
     ".": "./dist/index.js",
-    "./query": "./dist/querybuilder/statements/operators.js",
+    "./query": "./dist/querybuilder/index.js",
     "./auth": "./dist/auth/index.js",
     "./util": "./dist/util/index.js"
   },
