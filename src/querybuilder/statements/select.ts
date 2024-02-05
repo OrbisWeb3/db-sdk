@@ -22,6 +22,11 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
     this.#orbis = orbis;
   }
 
+  static buildQueryFromJson(jsonQuery: Record<string, any>) {
+    const builder = new SqlSelectBuilder(jsonQuery);
+    return builder.build();
+  }
+
   #warnUnique(method: string) {
     console.warn(
       `[QueryBuilder:select] Overwriting existing ${method} data. Only the last .${method}() call will be used.`
@@ -148,7 +153,7 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
     return whereClause;
   }
 
-  build() {
+  get jsonQuery() {
     if (!this.#table) {
       throw "[QueryBuilder:select] Cannot build a select statement without a specified table.";
     }
@@ -159,7 +164,7 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
         {}),
     };
 
-    const builder = new SqlSelectBuilder({
+    return {
       $table: this.#table,
       $columns: Array.from(this.#columns),
       $where: this.#checkForImplicitIn(
@@ -174,8 +179,11 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
       $orderBy: this.#orderBy,
       $limit: this.#limit,
       $offset: this.#offset,
-    });
+    };
+  }
 
+  build() {
+    const builder = new SqlSelectBuilder(this.jsonQuery);
     return builder.build();
   }
 
@@ -185,27 +193,32 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
 
   async run() {
     const timestamp = Date.now();
-    const { query, params } = this.build();
+    const query = this.jsonQuery;
+    const parsedQuery = this.build();
 
     const [result, error] = await catchError(() =>
-      this.#orbis.node.query<T>(query, params)
+      this.#orbis.node.query<T>(query)
     );
 
     if (error) {
       super.storeResult({
-        query,
-        params,
+        query: {
+          json: query,
+          parsed: parsedQuery,
+        },
         error,
         success: false,
         timestamp,
       });
 
-      return { query, params, error };
+      return { query, error };
     }
 
     super.storeResult({
-      query,
-      params,
+      query: {
+        json: query,
+        parsed: parsedQuery,
+      },
       result,
       success: true,
       timestamp,

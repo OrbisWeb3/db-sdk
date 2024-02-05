@@ -20,7 +20,7 @@ import { catchError } from "./util/tryit.js";
 import { LOCALSTORAGE_KEYS } from "./util/const.js";
 import { DagJWS } from "dids";
 
-import { QueryBuilder, StatementExecuteResult } from "./querybuilder/index.js";
+import { QueryBuilder } from "./querybuilder/index.js";
 // import {
 //   SelectQueryBuilder,
 //   SelectStatement,

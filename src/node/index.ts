@@ -57,18 +57,14 @@ async function fetchMetadata(node: NodeContext): Promise<NodeInformation> {
 
 export async function queryDatabase<T = Record<string, any>>(
   node: NodeContext,
-  query: string,
-  params?: Readonly<Array<any>>
+  jsonQuery: Record<string, any>
 ): Promise<{ columns: Array<string>; rows: Array<T> }> {
-  const response = await apiFetch(node, "/api/db/query", {
+  const response = await apiFetch(node, "/api/db/query/json", {
     method: "POST",
     headers: {
       "Content-type": "application/json",
     },
-    body: JSON.stringify({
-      query,
-      params,
-    }),
+    body: JSON.stringify({ jsonQuery }),
   });
 
   const { status, data } = await response.json();
@@ -126,13 +122,12 @@ export class OrbisNode {
   }
 
   async query<T = Record<string, any>>(
-    query: string,
-    params: Array<any>
+    jsonQuery: Record<string, any>
   ): Promise<{
     columns: Array<string>;
     rows: Array<T>;
   }> {
-    return queryDatabase(this.node, query, params);
+    return queryDatabase(this.node, jsonQuery);
   }
 
   async fetch(route: string, opts?: RequestInit) {
