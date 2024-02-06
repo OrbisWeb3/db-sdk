@@ -1,9 +1,9 @@
 import { OrbisDB } from "../index.js";
 import { SelectStatement } from "./statements/select.js";
-import { InsertStatement } from "./statements/insert.js";
+import { BulkInsertStatement, InsertStatement } from "./statements/insert.js";
 import * as Operators from "./statements/operators.js";
 
-export { SelectStatement, InsertStatement, Operators };
+export { SelectStatement, InsertStatement, BulkInsertStatement, Operators };
 
 export class QueryBuilder {
   #orbis: OrbisDB;
@@ -11,7 +11,7 @@ export class QueryBuilder {
 
   select: (...columns: Array<string | any>) => SelectStatement;
   insert: (model: string) => InsertStatement;
-  // insertBulk: (model: string) => BulkInsertStatement;
+  insertBulk: (model: string) => BulkInsertStatement;
 
   constructor(orbis: OrbisDB) {
     this.#orbis = orbis;
@@ -19,8 +19,8 @@ export class QueryBuilder {
 
     this.insert = (model: string) => new InsertStatement(this.#orbis, model);
 
-    // this.insertBulk = (model: string) =>
-    // new BulkInsertStatement(this.#orbis, model);
+    this.insertBulk = (model: string) =>
+      new BulkInsertStatement(this.#orbis, model);
 
     this.select = (...columns: Array<string | any>) => {
       const statement = new SelectStatement(this.#orbis);
@@ -41,88 +41,4 @@ export class QueryBuilder {
 
     return modelSchema;
   }
-
-  // async #insert(
-  //   table: string,
-  //   content: Record<string, any>
-  // ): Promise<
-  //   { document: Record<string, any> } & ({ error: string } | { id: string })
-  // > {
-  //   try {
-  //     // Retrieve clean table name based on the model id passed or return model ID
-  //     let modelId = this.#orbis.node.getTableModelId(table) as string;
-  //     if (!modelId || modelId == undefined) {
-  //       modelId = table;
-  //     }
-
-  //     // Creating stream on Ceramic using the model retrieved from the mapping
-  //     const { id } = await this.#orbis.ceramic.createDocument({
-  //       model: modelId,
-  //       content,
-  //     });
-
-  //     return { document: content, id };
-  //   } catch (error: any) {
-  //     return { document: content, error };
-  //   }
-  // }
-
-  // async execute(
-  //   query: SelectStatement | InsertStatement | BulkInsertStatement,
-  //   node?: string | number
-  // ): Promise<StatementExecuteResult> {
-  //   if ("statementType" in query) {
-  //     if (query.statementType === "CERAMIC_INSERT" && "document" in query) {
-  //       const document = await query.document();
-  //       if (!document) {
-  //         throw "Insert statement contains no values.";
-  //       }
-
-  //       const result = await this.#insert(query.model, document);
-  //       return result;
-  //     }
-
-  //     if (
-  //       query.statementType === "CERAMIC_BULK_INSERT" &&
-  //       "documents" in query
-  //     ) {
-  //       const documents = await query.documents();
-
-  //       const results = await Promise.allSettled(
-  //         documents.map(async (content) => this.#insert(query.model, content))
-  //       );
-
-  //       const errors: Array<{ document: Record<string, any>; error: string }> =
-  //         [];
-  //       const success: Array<{ document: Record<string, any>; id: string }> =
-  //         [];
-
-  //       for (const result of results) {
-  //         if (result.status !== "fulfilled") {
-  //           errors.push({ document: {}, error: result.reason });
-  //           continue;
-  //         }
-
-  //         const { value } = result;
-
-  //         if ("error" in value) {
-  //           errors.push(value);
-  //           continue;
-  //         }
-
-  //         success.push(value);
-  //       }
-
-  //       return {
-  //         errors,
-  //         success,
-  //       };
-  //     }
-
-  //     throw "Unsupported statement type " + query.statementType;
-  //   }
-
-  //   const { sql, bindings: params } = query.toSQL().toNative();
-  //   return this.#orbis.node.query(sql, params as Array<any>);
-  // }
 }
