@@ -3,7 +3,7 @@ export class StatementHistory {
     { success: boolean; timestamp: number; query: any; [k: string]: any } & (
       | { result: any }
       | { error: any }
-    )
+    ) & { details?: any }
   > = [];
 
   constructor() {}

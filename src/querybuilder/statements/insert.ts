@@ -1,69 +1,203 @@
 import { validate as validateJsonSchema } from "jsonschema";
 import { StatementHistory } from "./historyProvider.js";
-import { OrbisDB } from "../../index.js";
+import { OrbisDB, OrbisDocument } from "../../index.js";
+import { catchError } from "../../util/tryit.js";
 
-// export class BulkInsertStatement<
-//   T = Record<string, any>,
-// > extends StatementHistory {
-//   #orbis: OrbisDB;
-//   #model: string;
-//   #context?: string;
-//   #values: Array<T> = [];
+export class BulkInsertStatement<
+  T = Record<string, any>,
+> extends StatementHistory {
+  #orbis: OrbisDB;
+  #tableName?: string;
+  #model?: string;
+  #context?: string;
+  #values: Array<T> = [];
 
-//   constructor(orbis: OrbisDB, model: string) {
-//     super();
+  constructor(orbis: OrbisDB, tableOrModelId: string) {
+    super();
 
-//     this.#orbis = orbis;
-//     this.#model = model;
-//   }
+    this.#orbis = orbis;
 
-//   async documents(): Promise<Array<T>> {
-//     return this.#values;
-//   }
+    if (this.#orbis.ceramic.isStreamIdString(tableOrModelId)) {
+      this.#model = tableOrModelId;
+    } else {
+      this.#tableName = tableOrModelId;
+    }
+  }
 
-//   get model(): string {
-//     return this.#model;
-//   }
+  get documents(): Array<T> {
+    return this.#values;
+  }
 
-//   async validate(): Promise<
-//     | { valid: true }
-//     | {
-//         valid: false;
-//         errors: Array<{ document: T; error: string }>;
-//       }
-//   > {
-//     const schema = await this.#orbis.query.fetchModelSchema(this.model);
-//     const results = this.#values.map((value) =>
-//       validateJsonSchema(value, schema)
-//     );
+  async getTableName() {
+    if (this.#tableName) {
+      return this.#tableName;
+    }
 
-//     if (results.some((v) => !v.valid)) {
-//       return {
-//         valid: false,
-//         errors: results
-//           .filter((v) => !v.valid)
-//           .map((v) => ({ document: v.instance, error: v.errors.join(", ") })),
-//       };
-//     }
+    const { tableName } = await this.#orbis.node.getTableName(
+      this.#model as string
+    );
+    if (!tableName) {
+      this.#tableName = this.#model;
+      return this.#tableName;
+    }
 
-//     return { valid: true };
-//   }
+    this.#tableName = tableName;
+    return this.#tableName;
+  }
 
-//   value(v: T): BulkInsertStatement<T> {
-//     this.#values = [...this.#values, v];
-//     return this;
-//   }
+  async getModelId() {
+    if (this.#model) {
+      return this.#model;
+    }
 
-//   values(v: T | Array<T>): BulkInsertStatement<T> {
-//     this.#values = [...this.#values, ...(Array.isArray(v) ? v : [v])];
-//     return this;
-//   }
+    const { modelId } = await this.#orbis.node.getTableModelId(
+      this.#tableName as string
+    );
+    if (!modelId || !this.#orbis.ceramic.isStreamIdString(modelId)) {
+      throw "[QueryBuilder:insert] Unable to convert tableName to modelId. Use raw modelId instead.";
+    }
 
-//   context(context: string) {
-//     this.#context = context;
-//     return this;
-//   }
-// }
+    this.#model = modelId;
+    return this.#model;
+  }
+
+  async validate(): Promise<
+    | {
+        valid: true;
+      }
+    | {
+        valid: false;
+        errors: Array<{
+          document: T;
+          error: string;
+        }>;
+      }
+  > {
+    const model = await this.getModelId();
+    const schema = await this.#orbis.query.fetchModelSchema(model);
+
+    const results = this.documents.map((document: T) => {
+      const result = validateJsonSchema(document, schema);
+      if (!result.valid) {
+        return {
+          valid: false as const,
+          error: result.errors.join(", "),
+          document,
+        };
+      }
+
+      return {
+        valid: true as const,
+        document,
+      };
+    });
+
+    if (results.some((result) => !result.valid)) {
+      return {
+        valid: false,
+        errors: results.filter((result) => !result.valid) as Array<{
+          document: T;
+          error: string;
+        }>,
+      };
+    }
+
+    return {
+      valid: true,
+    };
+  }
+
+  value(v: T) {
+    this.#values.push(v);
+    return this;
+  }
+
+  values(values: Array<T>) {
+    this.#values = [...this.#values, ...values];
+    return this;
+  }
+
+  context(context: string) {
+    this.#context = context;
+    return this;
+  }
+
+  async run() {
+    if (!this.documents.length) {
+      throw "[QueryBuilder:insert] Cannot create empty document, missing .value() or .values()";
+    }
+
+    const timestamp = Date.now();
+    const model = await this.getModelId();
+
+    const query = {
+      documents: this.documents,
+      context: this.#context,
+      model,
+    };
+
+    const results = (
+      await Promise.allSettled(
+        this.documents.map(async (document) => {
+          const [orbisDocument, error] = await catchError(() =>
+            this.#orbis.ceramic.createDocument({
+              content: document as Record<string, any>,
+              context: this.#context,
+              model,
+            })
+          );
+
+          if (error) {
+            return {
+              error,
+              document,
+            };
+          }
+
+          return orbisDocument;
+        })
+      )
+    ).map((result) => (result as PromiseFulfilledResult<any>).value);
+
+    const success: Array<OrbisDocument> = results.filter(
+      (result) => typeof result.error === "undefined"
+    );
+
+    const errors: Array<{ document: T; error: any }> = results.filter(
+      (result) => typeof result.error !== "undefined"
+    );
+
+    if (!errors.length) {
+      super.storeResult({
+        timestamp,
+        success: true,
+        result: "All documents created successfully. Check .details for more.",
+        query,
+        details: {
+          success,
+          errors,
+        },
+      });
+    } else {
+      super.storeResult({
+        timestamp,
+        success: false,
+        error:
+          "One or more documents failed to be created. Check .details for more.",
+        query,
+        details: {
+          success,
+          errors,
+        },
+      });
+    }
+
+    return {
+      success,
+      errors,
+    };
+  }
+}
 
 export class InsertStatement<T = Record<string, any>> extends StatementHistory {
   #orbis: OrbisDB;
@@ -84,7 +218,7 @@ export class InsertStatement<T = Record<string, any>> extends StatementHistory {
     }
   }
 
-  async document(): Promise<T | undefined> {
+  get document(): T | undefined {
     return this.#value;
   }
 
@@ -194,78 +328,3 @@ export class InsertStatement<T = Record<string, any>> extends StatementHistory {
     }
   }
 }
-
-// async #insert(
-//   table: string,
-//   content: Record<string, any>
-// ): Promise<
-//   { document: Record<string, any> } & ({ error: string } | { id: string })
-// > {
-//   try {
-//     // Retrieve clean table name based on the model id passed or return model ID
-//     let modelId = this.#orbis.node.getTableModelId(table) as string;
-//     if (!modelId || modelId == undefined) {
-//       modelId = table;
-//     }
-
-//     // Creating stream on Ceramic using the model retrieved from the mapping
-//     const { id } = await this.#orbis.ceramic.createDocument({
-//       model: modelId,
-//       content,
-//     });
-
-//     return { document: content, id };
-//   } catch (error: any) {
-//     return { document: content, error };
-//   }
-// }
-
-// if (query.statementType === "CERAMIC_INSERT" && "document" in query) {
-//       const document = await query.document();
-//       if (!document) {
-//         throw "Insert statement contains no values.";
-//       }
-
-//       const result = await this.#insert(query.model, document);
-//       return result;
-//     }
-
-//     if (
-//       query.statementType === "CERAMIC_BULK_INSERT" &&
-//       "documents" in query
-//     ) {
-//       const documents = await query.documents();
-
-//       const results = await Promise.allSettled(
-//         documents.map(async (content) => this.#insert(query.model, content))
-//       );
-
-//       const errors: Array<{ document: Record<string, any>; error: string }> =
-//         [];
-//       const success: Array<{ document: Record<string, any>; id: string }> =
-//         [];
-
-//       for (const result of results) {
-//         if (result.status !== "fulfilled") {
-//           errors.push({ document: {}, error: result.reason });
-//           continue;
-//         }
-
-//         const { value } = result;
-
-//         if ("error" in value) {
-//           errors.push(value);
-//           continue;
-//         }
-
-//         success.push(value);
-//       }
-
-//       return {
-//         errors,
-//         success,
-//       };
-//     }
-
-//     throw "Unsupported statement type " + query.statementType;
-//   }
