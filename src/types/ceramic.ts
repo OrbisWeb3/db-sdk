@@ -1,6 +1,7 @@
 import { StreamID } from "@ceramicnetwork/streamid";
 import { DIDAny } from "./common.js";
 import { IAuthenticatedResource } from "./resources.js";
+import { ModelInstanceDocument } from "@ceramicnetwork/stream-model-instance";
 
 export type OrbisDocument = {
   id: string;
@@ -21,5 +22,12 @@ export type NewOrbisDocument = {
 export interface IOrbisStorage extends IAuthenticatedResource {
   getDocument(id: string): Promise<OrbisDocument>;
   createDocument(params: NewOrbisDocument): Promise<{ id: string }>;
-  updateDocument(id: string, params: NewOrbisDocument): Promise<{ id: string }>;
+  updateDocument(
+    id: string,
+    params: Record<string, any>
+  ): Promise<{ id: string }>;
+  updateDocumentBySetter(
+    id: string,
+    setter: (document: ModelInstanceDocument) => Promise<Record<string, any>>
+  ): Promise<OrbisDocument>;
 }

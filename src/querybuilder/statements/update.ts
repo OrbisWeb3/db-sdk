@@ -1,3 +1,89 @@
+import { StreamID } from "@ceramicnetwork/streamid";
+import { OrbisDB } from "../../index.js";
+import { StatementHistory } from "./historyProvider.js";
+
+export class UpdateByIdStatement<
+  T = Record<string, any>,
+> extends StatementHistory {
+  #orbis: OrbisDB;
+  #id: string;
+  #newContent?: T;
+
+  constructor(orbis: OrbisDB, documentId: string | StreamID) {
+    super();
+
+    this.#orbis = orbis;
+    this.#id =
+      typeof documentId === "string" ? documentId : documentId.toString();
+  }
+
+  id(documentId: string | StreamID) {
+    const id =
+      typeof documentId === "string" ? documentId : documentId.toString();
+
+    if (this.#id) {
+      console.warn("[QueryBuilder:update] Modfying documentId to update.", {
+        old: this.#id,
+        new: id,
+      });
+    }
+
+    this.#id = id;
+    return this;
+  }
+
+  replace(newContent: T) {
+    this.#newContent = newContent;
+    return this;
+  }
+
+  // TODO: Implement validation
+  // async validate(){
+
+  // }
+
+  async run() {
+    if (!this.#newContent) {
+      throw "[QueryBuilder:update] Cannot update a document with no content.";
+    }
+
+    const timestamp = Date.now();
+
+    const query = {
+      id: this.#id,
+      newContent: this.#newContent,
+    };
+
+    try {
+      const document = await this.#orbis.ceramic.updateDocument(
+        this.#id,
+        this.#newContent as Record<string, any>
+      );
+
+      super.storeResult({
+        timestamp,
+        success: true,
+        result: document,
+        query,
+      });
+
+      return document;
+    } catch (error) {
+      super.storeResult({
+        timestamp,
+        success: false,
+        error,
+        query,
+      });
+
+      return {
+        query,
+        error,
+      };
+    }
+  }
+}
+
 // class UpdateByModelStatement<T = Record<string, any>> {
 //   statementType = "CERAMIC_UPDATE";
 

@@ -25,6 +25,7 @@ import {
   SelectStatement,
   BulkInsertStatement,
   InsertStatement,
+  UpdateByIdStatement,
 } from "./querybuilder/index.js";
 
 export class OrbisDB {
@@ -40,6 +41,7 @@ export class OrbisDB {
   select: (...fields: Array<string | any>) => SelectStatement;
   insert: (model: string) => InsertStatement;
   insertBulk: (model: string) => BulkInsertStatement;
+  update: (documentId: string) => UpdateByIdStatement;
 
   constructor(config: OrbisConfig) {
     this.#ceramic = new CeramicStorage(config.ceramic);
@@ -53,6 +55,7 @@ export class OrbisDB {
     this.select = this.query.select.bind(this.query);
     this.insert = this.query.insert.bind(this.query);
     this.insertBulk = this.query.insertBulk.bind(this.query);
+    this.update = this.query.update.bind(this.query);
   }
 
   get ceramic() {
@@ -127,13 +130,12 @@ export class OrbisDB {
     }
 
     // User can set `saveSession` to false if they don't want the current session to be stored in local storage
-    if(saveSession) {
+    if (saveSession) {
       this.#store.setItem(
         LOCALSTORAGE_KEYS.session,
         await this.#serializeActiveSession()
       );
     }
-    
 
     return this.session;
   }

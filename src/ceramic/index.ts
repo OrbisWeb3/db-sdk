@@ -327,22 +327,27 @@ export class CeramicStorage implements IOrbisStorage {
       }
     );
 
+    const { model, controller, ...metadata } = doc.metadata;
+
     return {
       id: doc.id.toString(),
       content: doc.content as Record<string, any>,
-      model: doc.metadata.model.toString(),
+      model: model.toString(),
       context:
-        typeof params.context === "string"
-          ? params.context
-          : params.context?.toString(),
-      controller: doc.metadata.controller as DIDAny,
-      metadata: params.metadata || {},
+        doc.state.metadata.context?.toString() ||
+        (params.context &&
+          (typeof params.context === "string"
+            ? params.context
+            : params.context.toString())) ||
+        undefined,
+      controller: controller as DIDAny,
+      metadata: metadata || {},
     };
   }
 
   async updateDocument(
     id: string,
-    params: NewOrbisDocument
+    content: Record<string, any>
   ): Promise<OrbisDocument> {
     if (!this.#session)
       throw new OrbisError(
@@ -351,18 +356,45 @@ export class CeramicStorage implements IOrbisStorage {
 
     const doc = await ModelInstanceDocument.load(this.client, id);
 
-    await doc.replace(params.content);
+    await doc.replace(content);
+
+    const { model, controller, ...metadata } = doc.metadata;
 
     return {
       id: doc.id.toString(),
       content: doc.content as Record<string, any>,
-      model: doc.metadata.model.toString(),
-      context:
-        typeof params.context === "string"
-          ? params.context
-          : params.context?.toString(),
-      controller: doc.metadata.controller as DIDAny,
-      metadata: params.metadata || {},
+      model: model.toString(),
+      context: doc.state.metadata.context?.toString(),
+      controller: controller as DIDAny,
+      metadata: metadata || {},
+    };
+  }
+
+  async updateDocumentBySetter(
+    id: string,
+    setter: (document: ModelInstanceDocument) => Promise<Record<string, any>>
+  ): Promise<OrbisDocument> {
+    if (!this.#session)
+      throw new OrbisError(
+        "[Ceramic] Unable to update document, no active Storage session."
+      );
+
+    const doc = (await ModelInstanceDocument.load(
+      this.client,
+      id
+    )) as ModelInstanceDocument<Record<string, any>>;
+
+    await doc.replace(await setter(doc));
+
+    const { model, controller, ...metadata } = doc.metadata;
+
+    return {
+      id: doc.id.toString(),
+      content: doc.content as Record<string, any>,
+      model: model.toString(),
+      context: doc.state.metadata.context?.toString(),
+      controller: controller as DIDAny,
+      metadata: metadata || {},
     };
   }
 
