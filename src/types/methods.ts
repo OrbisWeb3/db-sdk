@@ -11,6 +11,7 @@ import { SupportedChains } from "./providers.js";
 export type OrbisConnectParams = {
   auth: IOrbisAuth | IKeyDidAuth;
   siwxOverwrites?: Partial<SiwxMessage>;
+  saveSession?: boolean;
 };
 
 export type OrbisConnectResult = {

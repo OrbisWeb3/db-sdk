@@ -109,7 +109,7 @@ export class OrbisDB {
   }
 
   async connectUser(params: OrbisConnectParams): Promise<OrbisConnectResult> {
-    const { auth: authenticator, siwxOverwrites } = params;
+    const { auth: authenticator, siwxOverwrites, saveSession = true } = params;
     const user = await authenticator.getUserInformation();
 
     const ceramicStorage = this.ceramic as IAuthenticatedCeramicResource;
@@ -126,10 +126,14 @@ export class OrbisDB {
       );
     }
 
-    this.#store.setItem(
-      LOCALSTORAGE_KEYS.session,
-      await this.#serializeActiveSession()
-    );
+    // User can set `saveSession` to false if they don't want the current session to be stored in local storage
+    if(saveSession) {
+      this.#store.setItem(
+        LOCALSTORAGE_KEYS.session,
+        await this.#serializeActiveSession()
+      );
+    }
+    
 
     return this.session;
   }
