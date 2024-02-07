@@ -2,6 +2,7 @@ import { StreamID } from "@ceramicnetwork/streamid";
 import { OrbisDB } from "../../index.js";
 import { StatementHistory } from "./historyProvider.js";
 import { catchError } from "../../util/tryit.js";
+import { OrbisError } from "../../util/results.js";
 
 export class UpdateByIdStatement<
   T = Record<string, any>,
@@ -107,11 +108,15 @@ export class UpdateByIdStatement<
         query,
       });
 
-      return {
-        query,
-        error,
-      };
+      throw new OrbisError(error.message, { error, query });
     }
+
+    super.storeResult({
+      timestamp,
+      success: true,
+      result: document,
+      query,
+    });
 
     return document;
   }

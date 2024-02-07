@@ -5,6 +5,7 @@ import { StatementHistory } from "./historyProvider.js";
 import { OrderByParams, SqlSelectBuilder } from "./sqlbuild/index.js";
 
 import { catchError } from "../../util/tryit.js";
+import { OrbisError } from "../../util/results.js";
 
 // TODO: Improve typing for operators (and enable nested queries)
 export class SelectStatement<T = Record<string, any>> extends StatementHistory {
@@ -211,7 +212,7 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
         timestamp,
       });
 
-      return { query, error };
+      throw new OrbisError(error.message, { error, query });
     }
 
     super.storeResult({

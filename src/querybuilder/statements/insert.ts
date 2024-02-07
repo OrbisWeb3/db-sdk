@@ -2,6 +2,7 @@ import { validate as validateJsonSchema } from "jsonschema";
 import { StatementHistory } from "./historyProvider.js";
 import { OrbisDB, OrbisDocument } from "../../index.js";
 import { catchError } from "../../util/tryit.js";
+import { OrbisError } from "../../util/results.js";
 
 export class BulkInsertStatement<
   T = Record<string, any>,
@@ -302,18 +303,11 @@ export class InsertStatement<T = Record<string, any>> extends StatementHistory {
       model,
     };
 
-    try {
-      const document = await this.#orbis.ceramic.createDocument(query);
+    const [document, error] = await catchError(() =>
+      this.#orbis.ceramic.createDocument(query)
+    );
 
-      super.storeResult({
-        timestamp,
-        success: true,
-        result: document,
-        query,
-      });
-
-      return document;
-    } catch (error) {
+    if (error) {
       super.storeResult({
         timestamp,
         success: false,
@@ -321,10 +315,16 @@ export class InsertStatement<T = Record<string, any>> extends StatementHistory {
         query,
       });
 
-      return {
-        query,
-        error,
-      };
+      throw new OrbisError(error.message, { error, query });
     }
+
+    super.storeResult({
+      timestamp,
+      success: true,
+      result: document,
+      query,
+    });
+
+    return document;
   }
 }
