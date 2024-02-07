@@ -299,7 +299,7 @@ It also allows us to expose custom options such as `.context()` and `.contexts()
 
 We also did not require multiple engine support and we kept our dependencies to the minimum.
 
-We will keep expanding QB functionality with simple joins, new operators and other features that will make interacting with OrbisDB simpler and more efficient.
+We will keep expanding QB functionality with simple joins, new [operators](/src/querybuilder/statements/operators.ts) and other features that will make interacting with OrbisDB simpler and more efficient.
 
 ##### Building a `SELECT` query
 ```typescript
@@ -354,8 +354,10 @@ console.log({ columns, rows })
 ```
 
 ##### Using operators
-Operator helpers are exposed to provide query flexibility.\
+[Operator helpers](/src/querybuilder/statements/operators.ts) are exposed to provide query flexibility.\
 These include logical, comparison and aggregation operators.
+
+You can find the entire list of operators and resulting queries [here](/src/querybuilder/statements/operators.ts).
 
 ```typescript
 import { count, sum, contains, ilike, or, gte } from "@useorbis/db-sdk/operators"
