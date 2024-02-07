@@ -5,9 +5,6 @@
 > This SDK is a work-in-progress and is being developed in parallel with the OrbisDB node.
 > Things will change, however, the core components have been ported over from the Orbis Social SDK and should have a stable-enough interface.
 
-> [!NOTE]  
-> Initial release of the SDK uses Knex.js as the SELECT query builder. This will change due to compatibility issues and overall behavior control.
-
 ## Installation
 
 The SDK is available publicly on NPM. You can install it using your preferred package manager.
@@ -188,6 +185,8 @@ const insertStatement = await orbis
             column2: value2,
         }
     )
+    // optionally, you can scope this insert to a specific context
+    .context("CONTEXT_ID")
 
 // Perform local JSON Schema validation before running the query
 const validation = await insertStatement.validate()
@@ -291,12 +290,26 @@ Query is being sent to the OrbisDB node in JSON format where it gets parsed and 
 
 You can preview the final query by using `.build()`.
 
+##### Why a custom query builder?
+Our initial POCs were using existing QB solutions such as Knex.js and waterfall/JSON SQL builders.\
+However, these libraries are built with backend environments in mind and made our query interface more complex, as we aren't executing queries against a DB engine directly.
+
+Building a custom QB gave us the option to separate query building, serializing and final SQL outputs.\
+It also allows us to expose custom options such as `.context()` and `.contexts()`, further abstracting the underlying data model and making future optimizations and changes in the node easier.
+
+We also did not require multiple engine support and we kept our dependencies to the minimum.
+
+We will keep expanding QB functionality with simple joins, new operators and other features that will make interacting with OrbisDB simpler and more efficient.
+
 ##### Building a `SELECT` query
 ```typescript
 const selectStatement = await orbis
+    // SELECT column1, column2
     // if no columns are passed, all columns (*) will be returned
     .select("column1", "column2")
-    .from("MODEL_ID" | "TABLE_NAME")
+    // FROM model_id | table_name | view_id
+    .from("MODEL_ID" | "TABLE_NAME" | "VIEW_ID")
+    // WHERE ...conditions
     // unless specified, all conditions will be treated as logical AND
     .where(
         {
@@ -306,7 +319,11 @@ const selectStatement = await orbis
             column2 = ["value1", "value2"]
         }
     )
+    // you can scope this query to a specific context
     .context("CONTEXT_ID")
+    // or multiple contexts
+    .contexts("CONTEXT_ID", "CONTEXT_ID", ...)
+    // ORDER BY
     .orderBy(
         // orderBy a single column
         ["column", "asc" | "desc"]
@@ -316,7 +333,9 @@ const selectStatement = await orbis
             ["column2", "asc" | "desc"]
         ]
     )
+    // LIMIT
     .limit(number)
+    // OFFSET
     .offset(number)
 
 const query = selectStatement.build()
@@ -349,7 +368,7 @@ const selectStatement = await orbis
         sum("column3"), 
         count("column4", "count_column4")
     )
-    .from("MODEL_ID" | "TABLE_NAME")
+    .from("MODEL_ID" | "TABLE_NAME" | "VIEW_ID")
     // unless specified, all conditions will be treated as logical AND
     .where(
         {
