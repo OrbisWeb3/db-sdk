@@ -1,13 +1,15 @@
 import { StreamID } from "@ceramicnetwork/streamid";
 import { OrbisDB } from "../../index.js";
 import { StatementHistory } from "./historyProvider.js";
+import { catchError } from "../../util/tryit.js";
 
 export class UpdateByIdStatement<
   T = Record<string, any>,
 > extends StatementHistory {
   #orbis: OrbisDB;
   #id: string;
-  #newContent?: T;
+  #newValue?: T;
+  #replaceValues?: Partial<T>;
 
   constructor(orbis: OrbisDB, documentId: string | StreamID) {
     super();
@@ -32,8 +34,27 @@ export class UpdateByIdStatement<
     return this;
   }
 
-  replace(newContent: T) {
-    this.#newContent = newContent;
+  replace(newValue: T) {
+    if (this.#replaceValues) {
+      console.warn(
+        "[QueryBuilder:update] Replacing existing value settings set by .set()."
+      );
+      this.#replaceValues = undefined;
+    }
+
+    this.#newValue = newValue;
+    return this;
+  }
+
+  set(partialValues: Partial<T>) {
+    if (this.#newValue) {
+      console.warn(
+        "[QueryBuilder:update] Replacing existing value settings set by .replace()."
+      );
+      this.#newValue = undefined;
+    }
+
+    this.#replaceValues = partialValues;
     return this;
   }
 
@@ -43,32 +64,42 @@ export class UpdateByIdStatement<
   // }
 
   async run() {
-    if (!this.#newContent) {
-      throw "[QueryBuilder:update] Cannot update a document with no content.";
+    if (!this.#newValue && !this.#replaceValues) {
+      throw "[QueryBuilder:update] Cannot update a document with no updated or replaced values.";
     }
 
     const timestamp = Date.now();
 
     const query = {
       id: this.#id,
-      newContent: this.#newContent,
+      ...((this.#newValue && { newValue: this.#newValue }) || {
+        replaceValues: this.#replaceValues,
+      }),
     };
 
-    try {
-      const document = await this.#orbis.ceramic.updateDocument(
-        this.#id,
-        this.#newContent as Record<string, any>
+    let document, error;
+    if (this.#newValue) {
+      [document, error] = await catchError(() =>
+        this.#orbis.ceramic.updateDocument(
+          this.#id,
+          this.#newValue as Record<string, any>
+        )
       );
+    } else {
+      [document, error] = await catchError(() =>
+        this.#orbis.ceramic.updateDocumentBySetter(
+          this.#id,
+          async (document) => {
+            return {
+              ...document.content,
+              ...this.#replaceValues,
+            };
+          }
+        )
+      );
+    }
 
-      super.storeResult({
-        timestamp,
-        success: true,
-        result: document,
-        query,
-      });
-
-      return document;
-    } catch (error) {
+    if (error) {
       super.storeResult({
         timestamp,
         success: false,
@@ -81,6 +112,8 @@ export class UpdateByIdStatement<
         error,
       };
     }
+
+    return document;
   }
 }
 
