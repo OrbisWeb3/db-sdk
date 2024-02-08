@@ -4,16 +4,27 @@
  *
  */
 
-// SUM(DISTINCT? field) AS alias|field
-// .select($sum(field, alias, distinct)
-const $sum = (field: string, alias?: string, distinct?: boolean) => ({
-  [alias ?? field]: { $sum: { $expr: field, $distinct: distinct } },
+// SUM(DISTINCT? column) AS alias|column
+// .select($sum(column, alias, distinct)
+const $sum = (column: string, alias?: string, distinct?: boolean) => ({
+  [alias ?? column]: { $sum: { $expr: column, $distinct: distinct } },
 });
 
-// COUNT(DISTINCT? field) AS alias|field
-// .select($count(field, alias, distinct)
-const $count = (field: string, alias?: string, distinct?: boolean) => ({
-  [alias ?? field]: { $count: { $expr: field, $distinct: distinct } },
+// COUNT(DISTINCT? column) AS alias|column
+// .select($count(column, alias, distinct)
+const $count = (column: string, alias?: string, distinct?: boolean) => ({
+  [alias ?? column]: { $count: { $expr: column, $distinct: distinct } },
+});
+
+/**
+ *
+ * COLUMN OPERATORS
+ *
+ */
+
+// column AS alias
+const $as = (column: string, alias: string) => ({
+  [column]: { $as: alias },
 });
 
 /**
@@ -24,7 +35,7 @@ const $count = (field: string, alias?: string, distinct?: boolean) => ({
 
 // condition AND condition AND ...
 // .where(
-//    $and({ field: value }, { field: value })
+//    $and({ column: value }, { column: value })
 //  )
 const $and = (...conditions: any) => ({
   $and: conditions,
@@ -32,7 +43,7 @@ const $and = (...conditions: any) => ({
 
 // condition OR condition OR ..
 // .where(
-//    $or({ field: value }, { field: value })
+//    $or({ column: value }, { column: value })
 //  )
 const $or = (...conditions: any) => ({
   $or: conditions,
@@ -44,107 +55,106 @@ const $or = (...conditions: any) => ({
  *
  */
 
-// field BETWEEN rangeStart and rangeEnd
+// column BETWEEN rangeStart and rangeEnd
 const $between = (rangeStart: number, rangeEnd: number) => ({
   $between: { $min: rangeStart, $max: rangeEnd },
 });
 
-// field IN (...conditionParams)
+// column IN (...conditionParams)
 const inOperator = (...conditionParams: Array<string | number | boolean>) => ({
   $in: conditionParams,
 });
 
-// field NOT IN (...conditionParams)
+// column NOT IN (...conditionParams)
 const $notIn = (...conditionParams: Array<string | number | boolean>) => ({
   $nin: conditionParams,
 });
 
-// field = compareValue
+// column = compareValue
 const $eq = (compareValue: string | number) => ({ $eq: compareValue });
 
-// field <> compareValue
+// column <> compareValue
 const $neq = (compareValue: string | number) => ({ $neq: compareValue });
 
-// field > compareValue
+// column > compareValue
 const $gt = (compareValue: number) => ({ $gt: compareValue });
 
-// field >= compareValue
+// column >= compareValue
 const $gte = (compareValue: number) => ({ $gte: compareValue });
 
-// field < compareValue
+// column < compareValue
 const $lt = (compareValue: number) => ({ $lt: compareValue });
 
-// field <= compareValue
+// column <= compareValue
 const $lte = (compareValue: number) => ({ $lte: compareValue });
 
-// field LIKE "%compareValue%"
+// column LIKE "%compareValue%"
 const $contains = (compareValue: string) => ({ $contains: compareValue });
 
-// field ILIKE "%compareValue%"
+// column ILIKE "%compareValue%"
 const $icontains = (compareValue: string) => ({ $icontains: compareValue });
 
-// field LIKE "%compareValue"
+// column LIKE "%compareValue"
 const $startsWith = (compareValue: string) => ({ $startsWith: compareValue });
 
-// field ILIKE "%compareValue"
+// column ILIKE "%compareValue"
 const $istartsWith = (compareValue: string) => ({ $istartsWith: compareValue });
 
-// field LIKE "compareValue%"
+// column LIKE "compareValue%"
 const $endsWith = (compareValue: string) => ({ $endsWith: compareValue });
 
-// field ILIKE "compareValue%"
+// column ILIKE "compareValue%"
 const $iendsWith = (compareValue: string) => ({ $iendsWith: compareValue });
 
-// field LIKE "compareValue"
+// column LIKE "compareValue"
 const $like = (compareValue: string) => ({ $like: compareValue });
 
-// field ILIKE "compareValue"
+// column ILIKE "compareValue"
 const $ilike = (compareValue: string) => ({ $ilike: compareValue });
 
 export {
-  $and,
-  $or,
-  inOperator as $in,
-  $notIn,
-  $between,
   $sum,
-  $count,
-  $eq,
-  $neq,
-  $gt,
-  $gte,
-  $lt,
-  $lte,
-  $contains,
-  $startsWith,
-  $endsWith,
-  $icontains,
-  $istartsWith,
-  $iendsWith,
-  $like,
-  $ilike,
-
-  // Export non prefixed version for environments
-  // with $ as a reserverd keyword (Svelte, SvelteKit)
-  $and as and,
-  $or as or,
-  inOperator as inOp,
-  $notIn as notIn,
-  $between as between,
   $sum as sum,
+  $count,
   $count as count,
+  $as,
+  $as as as,
+  $and,
+  $and as and,
+  $or,
+  $or as or,
+  inOperator as $in,
+  inOperator as inOp,
+  $notIn,
+  $notIn as notIn,
+  $between,
+  $between as between,
+  $eq,
   $eq as eq,
+  $neq,
   $neq as neq,
+  $gt,
   $gt as gt,
+  $gte,
   $gte as gte,
+  $lt,
   $lt as lt,
+  $lte,
   $lte as lte,
+  $contains,
   $contains as contains,
-  $startsWith as startsWith,
-  $endsWith as endsWith,
+  $icontains,
   $icontains as icontains,
+  $startsWith,
+  $startsWith as startsWith,
+  $istartsWith,
   $istartsWith as istartsWith,
+  $endsWith,
+  $endsWith as endsWith,
+  $iendsWith,
   $iendsWith as iendsWith,
+  $like,
   $like as like,
+  $ilike,
   $ilike as ilike,
 };

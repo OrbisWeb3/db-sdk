@@ -83,23 +83,33 @@ export class SqlSelectBuilder {
   }
 
   #parseColumnObject(column: {
-    [alias: string]: {
-      [operation: string]: { $expr: string; $distinct: boolean };
+    [fieldId: string]: {
+      [operation: string]: { $expr: string; $distinct: boolean } | string;
     };
   }) {
-    const alias = Object.keys(column)[0];
-    const operation = Object.keys(column[alias])[0];
-    const field = column[alias][operation]["$expr"];
-    const distinct = column[alias][operation]["$distinct"];
+    const fieldId = Object.keys(column)[0];
+    const operation = Object.keys(column[fieldId])[0];
     const parsedOperation = operation.substring(1).toUpperCase();
 
-    if (!["SUM", "COUNT"].includes(parsedOperation)) {
+    if (!["SUM", "COUNT", "AS"].includes(parsedOperation)) {
       throw (
         "[QueryBuilder:select] Invalid aggregate function " + parsedOperation
       );
     }
 
-    return `${parsedOperation}(${(distinct && "DISTINCT ") || ""}${escapeId(field)}) as ${escapeId(alias)}`;
+    const operationParams = column[fieldId][operation];
+
+    if (parsedOperation === "AS") {
+      if (typeof operationParams !== "string") {
+        throw '[QueryBuilder:select] Invalid "as" params ' + operationParams;
+      }
+
+      return `${escapeId(fieldId)} as ${escapeId(operationParams)}`;
+    }
+
+    const opField = (operationParams as any)["$expr"];
+    const distinct = (operationParams as any)["$distinct"];
+    return `${parsedOperation}(${(distinct && "DISTINCT ") || ""}${escapeId(opField)}) as ${escapeId(fieldId)}`;
   }
 
   #toParamSqlArray(array: Array<string | number | bigint>) {
