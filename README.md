@@ -2,9 +2,9 @@
  OrbisDB SDK to create, manage and query open data.
 
 > [!WARNING]  
-> This SDK is a work-in-progress and is being developed in parallel with the OrbisDB node.
-> Things will change, however, the core components have been ported over from the Orbis Social SDK and should have a stable-enough interface.
-> Find any breaking changes in the changelog
+> This SDK is a work-in-progress and is being developed in parallel with the OrbisDB node.\
+> Things will change, however, the core components have been ported over from the Orbis Social SDK and should have a stable-enough interface.\
+> Find any notable or breaking changes in [CHANGELOG.md](/CHANGELOG.md).
 
 ## Installation
 
