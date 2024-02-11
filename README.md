@@ -4,6 +4,7 @@
 > [!WARNING]  
 > This SDK is a work-in-progress and is being developed in parallel with the OrbisDB node.
 > Things will change, however, the core components have been ported over from the Orbis Social SDK and should have a stable-enough interface.
+> Find any breaking changes in the changelog
 
 ## Installation
 
@@ -326,12 +327,10 @@ const selectStatement = await orbis
     // ORDER BY
     .orderBy(
         // orderBy a single column
-        ["column", "asc" | "desc"]
-        // orderBy multiple columns
-        [
-            ["column1", "asc" | "desc"], 
-            ["column2", "asc" | "desc"]
-        ]
+        ["column", "asc" | "desc"],
+        // or multiple columns by providing additional
+        // column arrays
+        ["column2", "asc" | "desc"]
     )
     // LIMIT
     .limit(number)

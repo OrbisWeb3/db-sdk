@@ -109,7 +109,7 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
     return this;
   }
 
-  orderBy(params: OrderByParams | Array<OrderByParams>) {
+  orderBy(...params: Array<OrderByParams>) {
     if (this.#orderBy) {
       this.#warnUnique("orderBy");
     }
@@ -119,12 +119,7 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
       return this;
     }
 
-    if (typeof params[0] === "string") {
-      this.#orderBy = [params as [string, "asc" | "desc"]];
-      return this;
-    }
-
-    this.#orderBy = params as Array<OrderByParams>;
+    this.#orderBy = params;
     return this;
   }
 
