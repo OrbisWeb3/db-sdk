@@ -50,9 +50,7 @@ export class OrbisKeyDidAuth implements IKeyDidAuth {
 
   static async generateSeed(format: "hex" | "uint8" = "uint8") {
     const buffer = new Uint8Array(32);
-    let _crypto =
-      typeof crypto === "undefined" ? await import("node:crypto") : crypto;
-    const seed = (_crypto as any).getRandomValues(buffer);
+    const seed = crypto.getRandomValues(buffer);
 
     if (format === "uint8") {
       return seed;
