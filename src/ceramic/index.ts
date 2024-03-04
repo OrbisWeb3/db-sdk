@@ -345,6 +345,95 @@ export class CeramicStorage implements IOrbisStorage {
     };
   }
 
+  async createDocumentSingle(params: NewOrbisDocument): Promise<OrbisDocument> {
+    if (!this.#session)
+      throw new OrbisError(
+        "[Ceramic] Unable to create document, no active Storage session."
+      );
+
+    const doc = await ModelInstanceDocument.single(this.client, {
+      model:
+        typeof params.model === "string"
+          ? StreamID.fromString(params.model)
+          : params.model,
+      ...(params.context
+        ? {
+            context:
+              typeof params.context === "string"
+                ? StreamID.fromString(params.context)
+                : params.context,
+          }
+        : {}),
+    });
+
+    await doc.replace(params.content);
+
+    const { model, controller, ...metadata } = doc.metadata;
+
+    return {
+      id: doc.id.toString(),
+      content: doc.content as Record<string, any>,
+      model: model.toString(),
+      context:
+        doc.state.metadata.context?.toString() ||
+        (params.context &&
+          (typeof params.context === "string"
+            ? params.context
+            : params.context.toString())) ||
+        undefined,
+      controller: controller as DIDAny,
+      metadata: metadata || {},
+    };
+  }
+
+  async createDocumentSet(
+    params: NewOrbisDocument,
+    unique: Array<string>
+  ): Promise<OrbisDocument> {
+    if (!this.#session)
+      throw new OrbisError(
+        "[Ceramic] Unable to create document, no active Storage session."
+      );
+
+    const doc = await ModelInstanceDocument.set(
+      this.client,
+      {
+        model:
+          typeof params.model === "string"
+            ? StreamID.fromString(params.model)
+            : params.model,
+        ...(params.context
+          ? {
+              context:
+                typeof params.context === "string"
+                  ? StreamID.fromString(params.context)
+                  : params.context,
+            }
+          : {}),
+      },
+      unique
+    );
+
+    await doc.replace(params.content);
+
+    const { model, controller, ...metadata } = doc.metadata;
+
+    return {
+      id: doc.id.toString(),
+      content: doc.content as Record<string, any>,
+      model: model.toString(),
+      context:
+        doc.state.metadata.context?.toString() ||
+        (params.context &&
+          (typeof params.context === "string"
+            ? params.context
+            : params.context.toString())) ||
+        undefined,
+      controller: controller as DIDAny,
+      metadata: metadata || {},
+    };
+  }
+
   async updateDocument(
     id: string,
     content: Record<string, any>
