@@ -130,23 +130,51 @@ export class BulkInsertStatement<
 
     const timestamp = Date.now();
     const model = await this.getModelId();
+    const modelContent = await this.#orbis.query.fetchModel(model);
+    const accountRelation = (
+      modelContent.accountRelation?.type || "list"
+    ).toLowerCase();
 
     const query = {
       documents: this.documents,
       context: this.#context,
       model,
+      accountRelation: modelContent.accountRelation,
     };
 
     const results = (
       await Promise.allSettled(
         this.documents.map(async (document) => {
-          const [orbisDocument, error] = await catchError(() =>
-            this.#orbis.ceramic.createDocument({
+          const [orbisDocument, error] = await catchError(() => {
+            if (accountRelation === "single") {
+              return this.#orbis.ceramic.createDocumentSingle({
+                content: document as Record<string, any>,
+                context: this.#context,
+                model,
+              });
+            }
+
+            // TODO: implementation, this is unverified
+            if (accountRelation === "set") {
+              const unique = modelContent.fields;
+              return this.#orbis.ceramic.createDocumentSet(
+                {
+                  content: document as Record<string, any>,
+                  context: this.#context,
+                  model,
+                },
+                unique.map(
+                  (key: string) => (document as Record<string, any>)[key]
+                )
+              );
+            }
+
+            return this.#orbis.ceramic.createDocument({
               content: document as Record<string, any>,
               context: this.#context,
               model,
-            })
-          );
+            });
+          });
 
           if (error) {
             return {
@@ -319,7 +347,9 @@ export class InsertStatement<T = Record<string, any>> extends StatementHistory {
         const unique = modelContent.fields;
         return this.#orbis.ceramic.createDocumentSet(
           query,
-          unique.map((key: string) => (query.content as any)[key])
+          unique.map(
+            (key: string) => (query.content as Record<string, any>)[key]
+          )
         );
       }
 
