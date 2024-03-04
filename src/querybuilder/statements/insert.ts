@@ -75,7 +75,7 @@ export class BulkInsertStatement<
       }
   > {
     const model = await this.getModelId();
-    const schema = await this.#orbis.query.fetchModelSchema(model);
+    const { schema } = await this.#orbis.query.fetchModel(model);
 
     const results = this.documents.map((document: T) => {
       const result = validateJsonSchema(document, schema);
@@ -264,7 +264,7 @@ export class InsertStatement<T = Record<string, any>> extends StatementHistory {
       }
   > {
     const model = await this.getModelId();
-    const schema = await this.#orbis.query.fetchModelSchema(model);
+    const { schema } = await this.#orbis.query.fetchModel(model);
     const result = validateJsonSchema(this.#value, schema);
 
     if (!result.valid) {
@@ -296,16 +296,35 @@ export class InsertStatement<T = Record<string, any>> extends StatementHistory {
 
     const timestamp = Date.now();
     const model = await this.getModelId();
+    const modelContent = await this.#orbis.query.fetchModel(model);
+    const accountRelation = (
+      modelContent.accountRelation?.type || "list"
+    ).toLowerCase();
 
     const query = {
       content: this.#value,
       context: this.#context,
       model,
+      // pass additional info, such as fields ("set")
+      accountRelation: modelContent.accountRelation,
     };
 
-    const [document, error] = await catchError(() =>
-      this.#orbis.ceramic.createDocument(query)
-    );
+    const [document, error] = await catchError(() => {
+      if (accountRelation === "single") {
+        return this.#orbis.ceramic.createDocumentSingle(query);
+      }
+
+      // TODO: implementation, this is unverified
+      if (accountRelation === "set") {
+        const unique = modelContent.fields;
+        return this.#orbis.ceramic.createDocumentSet(
+          query,
+          unique.map((key: string) => (query.content as any)[key])
+        );
+      }
+
+      return this.#orbis.ceramic.createDocument(query);
+    });
 
     if (error) {
       super.storeResult({

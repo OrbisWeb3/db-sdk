@@ -40,16 +40,14 @@ export class QueryBuilder {
       new UpdateByIdStatement(this.#orbis, documentId);
   }
 
-  async fetchModelSchema(model: string) {
+  async fetchModel(model: string) {
     if (this.#models[model]) {
       return this.#models[model];
     }
 
-    const {
-      content: { schema: modelSchema },
-    } = await this.#orbis.ceramic.client.loadStream(model);
-    this.#models[model] = modelSchema;
+    const { content } = await this.#orbis.ceramic.client.loadStream(model);
+    this.#models[model] = content;
 
-    return modelSchema;
+    return content;
   }
 }
