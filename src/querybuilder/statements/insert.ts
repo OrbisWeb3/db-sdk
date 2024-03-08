@@ -156,7 +156,7 @@ export class BulkInsertStatement<
 
             // TODO: implementation, this is unverified
             if (accountRelation === "set") {
-              const unique = modelContent.fields;
+              const unique = modelContent.accountRelation.fields;
               return this.#orbis.ceramic.createDocumentSet(
                 {
                   content: document as Record<string, any>,
@@ -344,7 +344,7 @@ export class InsertStatement<T = Record<string, any>> extends StatementHistory {
 
       // TODO: implementation, this is unverified
       if (accountRelation === "set") {
-        const unique = modelContent.fields;
+        const unique = modelContent.accountRelation.fields;
         return this.#orbis.ceramic.createDocumentSet(
           query,
           unique.map(
