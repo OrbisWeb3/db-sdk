@@ -67,9 +67,9 @@ export async function queryDatabase<T = Record<string, any>>(
     body: JSON.stringify({ jsonQuery }),
   });
 
-  const { status, data } = await response.json();
-  if (Number(status) !== 200) {
-    throw "Error querying database.";
+  const { status, data = [] } = await response.json();
+  if (![200, 404].includes(Number(status))) {
+    throw `Error querying database. Status code: ${status || response.status || "Unknown"} (${response.statusText || response.status || ""})`;
   }
 
   return {
