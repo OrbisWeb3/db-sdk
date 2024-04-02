@@ -8,7 +8,7 @@ import {
   SiwsMessage,
   SiwxMessage,
 } from "@didtools/cacao";
-import { CHAIN_NAMESPACE_MAP, ONE_WEEK } from "../util/const.js";
+import { CHAIN_NAMESPACE_MAP, THREE_MONTHS } from "../util/const.js";
 import { AuthResource } from "../types/auth.js";
 
 type CreateSiwxMessageParams = {
@@ -65,7 +65,8 @@ export async function createOrbisSiwxMessage(
     nonce: siwxOpts.nonce || randomString(10),
     issuedAt: siwxOpts.issuedAt || new Date().toISOString(),
     expirationTime:
-      siwxOpts.expirationTime || new Date(Date.now() + ONE_WEEK).toISOString(),
+      siwxOpts.expirationTime ||
+      new Date(Date.now() + THREE_MONTHS).toISOString(),
     chainId: siwxOpts.chainId || CHAIN_NAMESPACE_MAP[chain].chainId,
     resources:
       siwxOpts.resources ||
