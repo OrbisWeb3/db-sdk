@@ -240,6 +240,22 @@ export class CeramicStorage implements IOrbisStorage {
 
     const parsedSession = await DIDSession.fromSession(serializedSession);
 
+    if (!parsedSession.hasSession) {
+      this.clearSession();
+      throw new OrbisError("Invalid session", {
+        session: parsedSession,
+        hasSession: parsedSession.hasSession,
+      });
+    }
+
+    if (parsedSession.isExpired) {
+      this.clearSession();
+      throw new OrbisError("Session expired", {
+        session: parsedSession,
+        isExpired: parsedSession.isExpired,
+      });
+    }
+
     if (parsedSession.id !== user.did) {
       this.clearSession();
       throw new OrbisError("Session did mismatch", {
