@@ -187,13 +187,13 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
     return super.runs;
   }
 
-  async run() {
+  async run(env?: string) {
     const timestamp = Date.now();
     const query = this.jsonQuery;
     const parsedQuery = this.build();
 
     const [result, error] = await catchError(() =>
-      this.#orbis.node.query<T>(query)
+      this.#orbis.node.query<T>(query, env)
     );
 
     if (error) {
@@ -201,19 +201,23 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
         query: {
           json: query,
           parsed: parsedQuery,
+          runOverwriteEnv: env,
+          activeNodeEnv: this.#orbis.node.env,
         },
         error,
         success: false,
         timestamp,
       });
 
-      throw new OrbisError(error.message, { error, query });
+      throw new OrbisError(error.message, { error, query, env });
     }
 
     super.storeResult({
       query: {
         json: query,
         parsed: parsedQuery,
+        runOverwriteEnv: env,
+        activeNodeEnv: this.#orbis.node.env,
       },
       result,
       success: true,

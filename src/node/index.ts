@@ -1,5 +1,6 @@
 import { MethodStatuses } from "../types/results.js";
 import { ForceIndexingResult, OrbisConfig } from "../index.js";
+import { OrbisError } from "../util/results.js";
 
 type ModelMapping = {
   [modelId: string]: string;
@@ -14,8 +15,9 @@ type NodeInformation = {
 
 type NodeContext = {
   gateway: string;
-  key?: string;
   isPrimary: boolean;
+  env?: string;
+  key?: string;
   metadata?: NodeInformation;
 };
 
@@ -57,19 +59,25 @@ async function fetchMetadata(node: NodeContext): Promise<NodeInformation> {
 
 export async function queryDatabase<T = Record<string, any>>(
   node: NodeContext,
-  jsonQuery: Record<string, any>
+  jsonQuery: Record<string, any>,
+  env?: string
 ): Promise<{ columns: Array<string>; rows: Array<T> }> {
+  const environment = env || node.env;
+
   const response = await apiFetch(node, "/api/db/query/json", {
     method: "POST",
     headers: {
       "Content-type": "application/json",
     },
-    body: JSON.stringify({ jsonQuery }),
+    body: JSON.stringify({ jsonQuery, env: environment }),
   });
 
   const { status, data = [] } = await response.json();
   if (![200, 404].includes(Number(status))) {
-    throw `Error querying database. Status code: ${status || response.status || "Unknown"} (${response.statusText || response.status || ""})`;
+    throw new OrbisError(
+      `Error querying database. Status code: ${status || response.status || "Unknown"} (${response.statusText || response.status || ""})`,
+      { node, query: jsonQuery, environment }
+    );
   }
 
   return {
@@ -121,13 +129,18 @@ export class OrbisNode {
     this.node = node;
   }
 
+  get env() {
+    return this.node.env;
+  }
+
   async query<T = Record<string, any>>(
-    jsonQuery: Record<string, any>
+    jsonQuery: Record<string, any>,
+    env?: string
   ): Promise<{
     columns: Array<string>;
     rows: Array<T>;
   }> {
-    return queryDatabase(this.node, jsonQuery);
+    return queryDatabase(this.node, jsonQuery, env);
   }
 
   async fetch(route: string, opts?: RequestInit) {
@@ -222,11 +235,12 @@ export class OrbisNodeManager {
     }
 
     this.#nodes = nodes.map(
-      ({ gateway, key }, index) =>
+      ({ gateway, key, env }, index) =>
         new OrbisNode({
           gateway: gateway.replace(/\/$/, ""),
-          key,
           isPrimary: index === 0,
+          key,
+          env,
         })
     );
 
