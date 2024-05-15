@@ -30,6 +30,9 @@ OrbisDB SDK is aimed at the flexibility of data management for social, but also 
 ### Initialize the SDK
 Initializing the SDK requires 2 gateways - one for your Ceramic node and another one for your OrbisDB.
 
+#### For Dedicated Instances
+Dedicated instances are OrbisDB instances that you operate yourself or through a node provider exclusively for your usage.
+
 ```typescript
 import { OrbisDB } from "@useorbis/db-sdk"
 
@@ -40,6 +43,25 @@ const db = new OrbisDB({
     nodes: [
         {
             gateway: "YOUR_ORBIS_NODE_URL"
+        }
+    ]
+})
+```
+
+#### For Shared Instances
+Shared instances are publicly accessible OrbisDB instances managed by a third party, allowing you to use them without setting up your own infrastructure. When using a shared instance, you must specify the env parameter to select the desired environment within the shared instance.
+
+```typescript
+import { OrbisDB } from "@useorbis/db-sdk"
+
+const db = new OrbisDB({
+    ceramic: {
+        gateway: "YOUR_CERAMIC_NODE_URL"
+    },
+    nodes: [
+        {
+            gateway: "YOUR_ORBIS_NODE_URL",
+            env: "YOUR_ENVIRONMENT_ID"
         }
     ]
 })
@@ -59,7 +81,7 @@ Standard try/catch practices apply.
 let document
 try{
     document = await orbis.insert(...).run()
-}catch(error){
+} catch(error){
     console.log("Error", error)
 }
 
