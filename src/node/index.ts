@@ -1,5 +1,4 @@
-import { MethodStatuses } from "../types/results.js";
-import { ForceIndexingResult, OrbisConfig } from "../index.js";
+import { OrbisConfig } from "../index.js";
 import { OrbisError } from "../util/results.js";
 
 type ModelMapping = {
@@ -72,54 +71,19 @@ export async function queryDatabase<T = Record<string, any>>(
     body: JSON.stringify({ jsonQuery, env: environment }),
   });
 
-  const { status, data = [] } = await response.json();
-  if (![200, 404].includes(Number(status))) {
+  if (![200, 404].includes(response.status)) {
     throw new OrbisError(
-      `Error querying database. Status code: ${status || response.status || "Unknown"} (${response.statusText || response.status || ""})`,
+      `Error querying database. Status code: ${response.status || "Unknown"} (${response.statusText || response.status || ""})`,
       { node, query: jsonQuery, environment }
     );
   }
+
+  const { data = [] } = await response.json();
 
   return {
     columns: data.length ? Object.keys(data[0]) : [],
     rows: data,
   };
-}
-
-async function index(
-  node: NodeContext,
-  id: string
-): Promise<ForceIndexingResult> {
-  try {
-    const result = await apiFetch(node, `/force-index/${id}`);
-    const serverResponse = await result.json();
-
-    const {
-      status,
-      error: indexingError,
-      result: indexingResult,
-    } = serverResponse;
-
-    if (status === 200) {
-      return {
-        status: MethodStatuses.ok,
-        result: indexingResult,
-        serverResponse,
-      };
-    }
-
-    return {
-      status: MethodStatuses.genericError,
-      error: indexingError || indexingResult || status,
-      serverResponse,
-    };
-  } catch (e: any) {
-    return {
-      status: MethodStatuses.genericError,
-      serverResponse: null,
-      error: e.message,
-    };
-  }
 }
 
 export class OrbisNode {
