@@ -17,6 +17,10 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   #contexts: Array<string> = [];
   #where?: Record<string, any>;
   #orderBy?: Array<OrderByParams>;
+  #raw?: {
+    query: string;
+    params: Array<any>;
+  };
 
   constructor(orbis: OrbisDB) {
     super();
@@ -34,7 +38,28 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
     );
   }
 
+  #checkRawQuery() {
+    if (this.#raw) {
+      throw `[QueryBuilder:select] Raw SQL query has been declared using .raw(), all query building functions have been disabled.`;
+    }
+  }
+
+  raw(query: string, params: Array<any> = []) {
+    if (this.#raw) {
+      this.#warnUnique("raw");
+    }
+
+    this.#raw = {
+      query,
+      params,
+    };
+
+    return this;
+  }
+
   from(tableName: string) {
+    this.#checkRawQuery();
+
     if (this.#table) {
       this.#warnUnique("from");
     }
@@ -44,11 +69,15 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   column(column: string | any) {
+    this.#checkRawQuery();
+
     this.#columns.add(column);
     return this;
   }
 
   columns(...columns: Array<string | any>) {
+    this.#checkRawQuery();
+
     const _columns = new Set(columns);
     this.#columns = new Set([...this.#columns, ..._columns]);
     return this;
@@ -65,6 +94,8 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   limit(limit: number) {
+    this.#checkRawQuery();
+
     if (this.#limit) {
       this.#warnUnique("limit");
     }
@@ -74,6 +105,8 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   offset(offset: number) {
+    this.#checkRawQuery();
+
     if (this.#offset) {
       this.#warnUnique("offset");
     }
@@ -83,6 +116,8 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   context(context: string) {
+    this.#checkRawQuery();
+
     if (this.#contexts.length) {
       this.#warnUnique("context");
     }
@@ -92,6 +127,8 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   contexts(...contexts: Array<string>) {
+    this.#checkRawQuery();
+
     if (this.#contexts.length) {
       this.#warnUnique("contexts");
     }
@@ -101,6 +138,8 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   where(whereClause: Record<string, any>) {
+    this.#checkRawQuery();
+
     if (this.#where) {
       this.#warnUnique("where");
     }
@@ -110,6 +149,8 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   orderBy(...params: Array<OrderByParams>) {
+    this.#checkRawQuery();
+
     if (this.#orderBy) {
       this.#warnUnique("orderBy");
     }
@@ -150,6 +191,15 @@ export class SelectStatement<T = Record<string, any>> extends StatementHistory {
   }
 
   get jsonQuery() {
+    if (this.#raw) {
+      return {
+        $raw: {
+          query: this.#raw.query,
+          params: this.#raw.params,
+        },
+      };
+    }
+
     if (!this.#table) {
       throw "[QueryBuilder:select] Cannot build a select statement without a specified table.";
     }

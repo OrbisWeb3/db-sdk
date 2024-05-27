@@ -21,13 +21,13 @@ import { escapeId } from "./escape.js";
 export type OrderByParams = [string, "asc" | "desc"];
 
 class Parameters {
-  #values: Array<string | number | bigint | boolean> = [];
+  #values: Array<any> = [];
 
   get values() {
     return this.#values;
   }
 
-  add(value: string | number | bigint | boolean) {
+  add(value: any) {
     this.#values.push(value);
     return `$${this.#values.length}`;
   }
@@ -36,7 +36,8 @@ class Parameters {
 export class SqlSelectBuilder {
   #params: Parameters = new Parameters();
 
-  #table: string;
+  #raw?: { query: string; params: Array<any> };
+  #table?: string;
   #columns?: Array<string | any>;
   #where?: any;
   #orderBy?: Array<OrderByParams>;
@@ -46,6 +47,12 @@ export class SqlSelectBuilder {
   #query: Array<string> = ["SELECT"];
 
   constructor(query: Record<string, any>) {
+    if (query.$raw) {
+      this.#raw = query.$raw;
+    } else if (!query.$table) {
+      throw "[QueryBuilder:select] Missing table (.from) definition.";
+    }
+
     this.#table = query.$table;
     this.#columns = query.$columns;
     this.#where = query.$where;
@@ -55,6 +62,13 @@ export class SqlSelectBuilder {
   }
 
   build() {
+    if (this.#raw) {
+      return {
+        query: this.#raw.query,
+        params: this.#raw.params,
+      };
+    }
+
     // <columns>
     this.#query.push(this.#buildColumns());
 
@@ -62,7 +76,7 @@ export class SqlSelectBuilder {
     this.#query.push("FROM");
 
     // <table>
-    this.#query.push(escapeId(this.#table));
+    this.#query.push(escapeId(this.#table as string));
 
     // WHERE <>
     this.#query.push(this.#buildWhere());
@@ -235,7 +249,10 @@ export class SqlSelectBuilder {
     const value = condition[field];
 
     if (!field.startsWith("$")) {
-      if (["string", "number", "bigint", "boolean"].includes(typeof value)) {
+      if (
+        ["string", "number", "bigint", "boolean"].includes(typeof value) ||
+        value instanceof Date
+      ) {
         return this.#formatOperator(field, "$eq", value);
       }
 
