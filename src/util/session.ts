@@ -1,7 +1,7 @@
 import { DIDSession } from "did-session";
 import { decodeBase64 } from "./conversion.js";
 import { catchError } from "./tryit.js";
-import { KeyDidSession } from "../auth/keyDid.js";
+import { KeyDidSession, OrbisKeyDidAuth } from "../auth/keyDid.js";
 import { OrbisConnectResult } from "../types/methods.js";
 import { SupportedChains } from "../types/providers.js";
 import { DIDAny } from "../types/common.js";
@@ -28,9 +28,33 @@ export const parseSerializedSession = async (
   );
 
   if (error) {
-    throw (
-      "[parseSerializedSession] Unable to decode the provided session " + error
+    /**
+     * Attempt legacy session parsing
+     */
+    const [legacySession, _] = await catchError(() => JSON.parse(session));
+
+    if (!legacySession || !legacySession?.session?.session) {
+      throw (
+        "[parseSerializedSession] Unable to decode the provided session " +
+        error
+      );
+    }
+
+    console.info(
+      `[parseSerializedSession] Attempting legacy session parsing, for sessions created before 0.0.40-alpha.`
     );
+
+    // If legacy serialized KeyDidSession
+    const serialized: string = legacySession.session.session;
+    if (serialized.startsWith("did:key:session")) {
+      const seed = serialized.split(":").pop() as string;
+      const keyDid = await OrbisKeyDidAuth.fromSeed(seed);
+      const { session } = await keyDid.authenticateDid();
+      return parseSerializedSession(session.serialize());
+    }
+
+    // Assume the session is a serialized DIDSession
+    return parseSerializedSession(serialized);
   }
 
   if (decoded.sessionType === "key-did") {
