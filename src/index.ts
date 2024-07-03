@@ -79,12 +79,7 @@ export class OrbisDB {
 
   get serializedSession(): string | false {
     if (!this.session) {
-      throw new OrbisError(
-        "No active session found. (this.session is falsey)",
-        {
-          session: this.session,
-        }
-      );
+      return false;
     }
 
     return this.session.auth.serializedSession;
