@@ -3,9 +3,9 @@ import { ModelInstanceDocument } from "@ceramicnetwork/stream-model-instance";
 import { Model, ModelDefinition } from "@ceramicnetwork/stream-model";
 
 import {
-  OrbisDocument,
-  IOrbisStorage,
-  NewOrbisDocument,
+  ICeramicStorage,
+  CeramicDocument,
+  NewCeramicDocument,
 } from "../types/ceramic.js";
 import { CeramicConfig } from "../types/constructor.js";
 import { DIDSession, createDIDCacao, createDIDKey } from "did-session";
@@ -17,19 +17,14 @@ import {
   SiwsMessage,
   SiwxMessage,
 } from "@didtools/cacao";
-import { SupportedChains, OrbisResources, DIDAny } from "../index.js";
+import { SupportedChains, DIDAny } from "../index.js";
 import { OrbisError } from "../util/results.js";
-import {
-  AuthUserInformation,
-  IKeyDidAuth,
-  IOrbisAuth,
-  OrbisSession,
-  SerializedOrbisSession,
-} from "../types/auth.js";
+import { AuthUserInformation, IKeyDidAuth, ISiwxAuth } from "../types/auth.js";
 import { KeyDidSession, OrbisKeyDidAuth } from "../auth/keyDid.js";
 import { StreamID } from "@ceramicnetwork/streamid";
+import { parseSerializedSession } from "../util/session.js";
 
-export class CeramicStorage implements IOrbisStorage {
+export class CeramicStorage implements ICeramicStorage {
   id = "ceramic";
   userFriendlyName = "Ceramic Network";
   supportedChains = [
@@ -41,8 +36,7 @@ export class CeramicStorage implements IOrbisStorage {
 
   siwxResources = ["ceramic://*"];
 
-  #session?: OrbisSession;
-  #user?: AuthUserInformation;
+  #session?: KeyDidSession | DIDSession;
   client: CeramicClient;
 
   constructor(params: CeramicConfig) {
@@ -53,32 +47,16 @@ export class CeramicStorage implements IOrbisStorage {
     }
   }
 
-  get user() {
-    return this.#user;
-  }
-
   get did() {
     return this.client.did;
   }
 
-  get session(): SerializedOrbisSession | false {
+  get session(): DIDSession | KeyDidSession | false {
     if (!this.#session) {
       return false;
     }
 
-    return {
-      authAttestation: this.#session?.authAttestation,
-      authResource: this.#session?.authResource,
-      session: this.#session?.session.serialize(),
-    };
-  }
-
-  get didSession(): DIDSession | KeyDidSession | false {
-    if (!this.#session) {
-      return false;
-    }
-
-    return this.#session.session;
+    return this.#session;
   }
 
   async connect(): Promise<void> {
@@ -104,16 +82,9 @@ export class CeramicStorage implements IOrbisStorage {
     authenticator,
     siwxOverwrites,
   }: {
-    authenticator: IOrbisAuth | IKeyDidAuth;
+    authenticator: ISiwxAuth | IKeyDidAuth;
     siwxOverwrites?: Partial<SiwxMessage>;
-  }): Promise<OrbisSession> {
-    if (
-      !("authenticateSiwx" in authenticator) &&
-      !("authenticateDid" in authenticator)
-    ) {
-      throw "Unsupported auth method, missing authenticateSiwx or authenticateDid";
-    }
-
+  }): Promise<KeyDidSession | DIDSession> {
     const userInformation = await authenticator.getUserInformation();
     if (!this.supportedChains.includes(userInformation.chain)) {
       throw new OrbisError(
@@ -123,42 +94,41 @@ export class CeramicStorage implements IOrbisStorage {
       );
     }
 
-    if ("authenticateDid" in authenticator) {
-      const { did, session } = await authenticator.authenticateDid();
+    const { session, did } =
+      "authenticateDid" in authenticator
+        ? await this.#authenticateDid(authenticator)
+        : await this.#authenticateSiwx(
+            authenticator,
+            userInformation,
+            siwxOverwrites
+          );
 
-      const keyDidSession = session;
-      this.client.setDID(did);
-      this.#user = userInformation;
+    this.client.setDID(did);
+    this.#session = session;
 
-      this.#session = {
-        authResource: {
-          id: this.id,
-          userFriendlyName: this.userFriendlyName,
-          resourceType: OrbisResources.storage,
-        },
-        authAttestation: {
-          type: "keyDidSeed",
-          seed: keyDidSession.seed,
-        },
-        session: keyDidSession,
-      };
+    return this.#session;
+  }
 
-      return this.#session;
-    }
+  async #authenticateDid(authenticator: IKeyDidAuth) {
+    const { did, session } = await authenticator.authenticateDid();
 
+    return {
+      did,
+      session,
+    };
+  }
+
+  async #authenticateSiwx(
+    authenticator: ISiwxAuth,
+    userInformation: AuthUserInformation,
+    siwxOverwrites?: Partial<SiwxMessage>
+  ) {
     const keySeed = randomBytes(32);
     const didKey = await createDIDKey(keySeed);
 
-    const session = await (authenticator as IOrbisAuth).authenticateSiwx({
-      resources: [
-        {
-          id: this.id,
-          resourceType: OrbisResources.storage,
-          userFriendlyName: this.userFriendlyName,
-          siwxResources: this.siwxResources,
-        },
-      ],
+    const session = await authenticator.authenticateSiwx({
       siwxOverwrites: {
+        resources: this.siwxResources,
         ...siwxOverwrites,
         uri: didKey.id,
         ...((userInformation.chain === SupportedChains.evm && {
@@ -178,118 +148,100 @@ export class CeramicStorage implements IOrbisStorage {
       session.siwx.message,
       userInformation.chain
     );
-    const did = await createDIDCacao(didKey, cacao);
 
-    const didSession = new DIDSession({ keySeed, cacao, did });
-    this.client.setDID(didSession.did);
-    this.#user = userInformation;
+    const didSession = new DIDSession({
+      keySeed,
+      cacao,
+      did: await createDIDCacao(didKey, cacao),
+    });
 
-    this.#session = {
-      authResource: {
-        id: this.id,
-        userFriendlyName: this.userFriendlyName,
-        resourceType: OrbisResources.storage,
-      },
-      authAttestation: {
-        type: "siwx",
-        siwx: session.siwx,
-      },
+    return {
+      did: didSession.did,
       session: didSession,
     };
-
-    return this.#session;
   }
 
   async setSession({
-    user,
     session,
+    did,
   }: {
-    user: AuthUserInformation;
-    session: SerializedOrbisSession;
-  }): Promise<void> {
-    if (session.authResource.id !== this.id) {
-      throw new OrbisError("Session authResource mismatch.", {
-        sessionAuthResource: session.authResource.id,
-        authResource: this.id,
-      });
-    }
+    session: string;
+    did?: DIDAny;
+  }): Promise<KeyDidSession | DIDSession> {
+    const parsedSession = await parseSerializedSession(session);
 
-    const serializedSession = session.session;
+    if (parsedSession.sessionType === "key-did") {
+      const keyDid = await OrbisKeyDidAuth.fromSession(parsedSession.session);
 
-    if (session.authAttestation.type === "keyDidSeed") {
-      const keydid = await OrbisKeyDidAuth.fromSession(serializedSession);
-      const keyUser = await keydid.getUserInformation();
-      if (user.did !== keyUser.did) {
-        this.clearSession();
-        throw new OrbisError("did mismatch", { keyUser, user });
+      if (did) {
+        const keyUser = await keyDid.getUserInformation();
+        if (did !== keyUser.did) {
+          this.clearSession();
+          throw new OrbisError("[Ceramic:setSession] DID mismatch", {
+            parsedDid: keyUser.did,
+            expectedDid: did,
+          });
+        }
       }
 
-      const { session: parsedSession, did } = await keydid.authenticateDid();
+      const { session: resumedSession, did: parsedDid } =
+        await keyDid.authenticateDid();
 
-      this.client.setDID(did);
-      this.#user = user;
+      this.client.setDID(parsedDid);
+      this.#session = resumedSession;
 
-      this.#session = {
-        authAttestation: session.authAttestation,
-        authResource: session.authResource,
-        session: parsedSession,
-      };
-
-      return;
+      return this.#session;
     }
 
-    const parsedSession = await DIDSession.fromSession(serializedSession);
+    const didSession = parsedSession.session as DIDSession;
 
-    if (!parsedSession.hasSession) {
+    if (!didSession.hasSession) {
       this.clearSession();
-      throw new OrbisError("Invalid session", {
-        session: parsedSession,
-        hasSession: parsedSession.hasSession,
+      throw new OrbisError("[Ceramic] Invalid Ceramic session", {
+        session: didSession,
+        hasSession: didSession.hasSession,
       });
     }
 
-    if (parsedSession.isExpired) {
+    if (didSession.isExpired) {
       this.clearSession();
-      throw new OrbisError("Session expired", {
-        session: parsedSession,
-        isExpired: parsedSession.isExpired,
+      throw new OrbisError("[Ceramic] Ceramic session expired", {
+        session: didSession,
+        isExpired: didSession.isExpired,
       });
     }
 
-    if (parsedSession.id !== user.did) {
-      this.clearSession();
-      throw new OrbisError("Session did mismatch", {
-        session: parsedSession,
-        user,
-      });
+    if (did) {
+      if (didSession.id !== did) {
+        this.clearSession();
+        throw new OrbisError("[Ceramic] Session did mismatch", {
+          parsedDid: didSession.id,
+          expectedDid: did,
+        });
+      }
     }
 
-    this.client.setDID(parsedSession.did);
-    this.#user = user;
+    this.client.setDID(didSession.did);
+    this.#session = didSession;
 
-    this.#session = {
-      authAttestation: session.authAttestation,
-      authResource: session.authResource,
-      session: parsedSession,
-    };
+    return this.#session;
   }
 
   async clearSession(): Promise<void> {
     this.#session = undefined;
     // @ts-ignore (force empty DID)
     this.client.setDID(undefined);
-    this.#user = undefined;
   }
 
-  async assertCurrentUser(user: AuthUserInformation): Promise<boolean> {
-    if (!this.user) {
+  async assertCurrentUser(did: DIDAny): Promise<boolean> {
+    if (!this.#session) {
       return false;
     }
 
-    return JSON.stringify(user) === JSON.stringify(this.user);
+    return this.client.did?.id === did;
   }
 
-  async getDocument(id: string): Promise<OrbisDocument> {
+  async getDocument(id: string): Promise<CeramicDocument> {
     const doc = await ModelInstanceDocument.load(this.client, id);
 
     return {
@@ -318,7 +270,7 @@ export class CeramicStorage implements IOrbisStorage {
     return this.isStreamIdString(streamId);
   }
 
-  async createDocument(params: NewOrbisDocument): Promise<OrbisDocument> {
+  async createDocument(params: NewCeramicDocument): Promise<CeramicDocument> {
     if (!this.#session)
       throw new OrbisError(
         "[Ceramic] Unable to create document, no active Storage session."
@@ -361,7 +313,9 @@ export class CeramicStorage implements IOrbisStorage {
     };
   }
 
-  async createDocumentSingle(params: NewOrbisDocument): Promise<OrbisDocument> {
+  async createDocumentSingle(
+    params: NewCeramicDocument
+  ): Promise<CeramicDocument> {
     if (!this.#session)
       throw new OrbisError(
         "[Ceramic] Unable to create document, no active Storage session."
@@ -403,9 +357,9 @@ export class CeramicStorage implements IOrbisStorage {
   }
 
   async createDocumentSet(
-    params: NewOrbisDocument,
+    params: NewCeramicDocument,
     unique: Array<string>
-  ): Promise<OrbisDocument> {
+  ): Promise<CeramicDocument> {
     if (!this.#session)
       throw new OrbisError(
         "[Ceramic] Unable to create document, no active Storage session."
@@ -453,7 +407,7 @@ export class CeramicStorage implements IOrbisStorage {
   async updateDocument(
     id: string,
     content: Record<string, any>
-  ): Promise<OrbisDocument> {
+  ): Promise<CeramicDocument> {
     if (!this.#session)
       throw new OrbisError(
         "[Ceramic] Unable to update document, no active Storage session."
@@ -478,7 +432,7 @@ export class CeramicStorage implements IOrbisStorage {
   async updateDocumentBySetter(
     id: string,
     setter: (document: ModelInstanceDocument) => Promise<Record<string, any>>
-  ): Promise<OrbisDocument> {
+  ): Promise<CeramicDocument> {
     if (!this.#session)
       throw new OrbisError(
         "[Ceramic] Unable to update document, no active Storage session."

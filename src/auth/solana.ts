@@ -3,7 +3,7 @@ import { normalizeProvider } from "../providers/index.js";
 import {
   AuthUserInformation,
   AuthOptions,
-  IOrbisAuth,
+  ISiwxAuth,
   SiwxSession,
 } from "../types/auth.js";
 import {
@@ -15,7 +15,7 @@ import { createOrbisSiwxMessage } from "../siwx/index.js";
 import { SignedSiwxMessage } from "../types/siwx.js";
 import { DIDPkh } from "../types/common.js";
 
-export class OrbisSolanaAuth implements IOrbisAuth {
+export class OrbisSolanaAuth implements ISiwxAuth {
   orbisAuthId = "orbis-solana";
   chain = SupportedChains.solana;
   #provider: IGenericSignerProvider;
@@ -43,7 +43,6 @@ export class OrbisSolanaAuth implements IOrbisAuth {
   }
 
   async authenticateSiwx({
-    resources,
     siwxOverwrites,
     params,
   }: AuthOptions): Promise<SiwxSession> {
@@ -54,7 +53,6 @@ export class OrbisSolanaAuth implements IOrbisAuth {
     const siwsMessage = (await createOrbisSiwxMessage({
       provider: this.#provider,
       chain: this.chain,
-      resources,
       siwxOverwrites,
     })) as SiwsMessage;
 
@@ -69,7 +67,6 @@ export class OrbisSolanaAuth implements IOrbisAuth {
         message: siwsMessage as SignedSiwxMessage,
         serialized: messageToSign,
         signature,
-        resources: resources.map((v) => v.resourceType),
       },
     };
   }

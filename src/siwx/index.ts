@@ -9,7 +9,6 @@ import {
   SiwxMessage,
 } from "@didtools/cacao";
 import { CHAIN_NAMESPACE_MAP, THREE_MONTHS } from "../util/const.js";
-import { AuthResource } from "../types/auth.js";
 
 type CreateSiwxMessageParams = {
   siwxOpts: Partial<SiwxMessage>;
@@ -17,7 +16,6 @@ type CreateSiwxMessageParams = {
 
 type CreateOrbisSiwxMessageParams = {
   siwxOverwrites?: Partial<SiwxMessage>;
-  resources: Array<AuthResource>;
 } & (
   | { provider: IGenericSignerProvider }
   | { address: string; chain: SupportedChains }
@@ -26,17 +24,12 @@ type CreateOrbisSiwxMessageParams = {
 export async function createOrbisSiwxMessage(
   params: CreateOrbisSiwxMessageParams
 ) {
-  if (!params.resources || !params.resources.length)
-    throw "No resources provided for the SIWX message, provide at least one resource.";
-
   const siwxOpts = params.siwxOverwrites || {};
   const address =
     "address" in params ? params.address : await params.provider.getAddress();
   const chain = "chain" in params ? params.chain : params.provider.chain;
 
-  const statement = `Give this application access to some of your data on ${params.resources
-    .map((v) => v.userFriendlyName)
-    .join(", ")}.`;
+  const statement = `Give this application access to some of your data on Ceramic Network.`;
 
   const domain =
     siwxOpts.domain ||
@@ -59,7 +52,7 @@ export async function createOrbisSiwxMessage(
   const newSiwxOpts = {
     domain,
     address,
-    statement: statement,
+    statement,
     uri,
     version: "1",
     nonce: siwxOpts.nonce || randomString(10),
@@ -68,12 +61,7 @@ export async function createOrbisSiwxMessage(
       siwxOpts.expirationTime ||
       new Date(Date.now() + THREE_MONTHS).toISOString(),
     chainId: siwxOpts.chainId || CHAIN_NAMESPACE_MAP[chain].chainId,
-    resources:
-      siwxOpts.resources ||
-      params.resources.reduce(
-        (acc: Array<string>, v) => [...acc, ...v.siwxResources],
-        []
-      ),
+    resources: siwxOpts.resources || ["ceramic://*"],
     ...siwxOpts,
   } as Partial<SiwxMessage>;
 

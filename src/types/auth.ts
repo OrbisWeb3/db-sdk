@@ -1,7 +1,6 @@
-import { SiwxMessage } from "@didtools/cacao";
+import { Cacao, SiwxMessage } from "@didtools/cacao";
 import { SupportedChains } from "./providers.js";
 import { SignedSiwxMessage } from "./siwx.js";
-import { OrbisResources } from "./resources.js";
 import { DIDAny } from "./common.js";
 import { DID } from "dids";
 import { KeyDidSession } from "../auth/keyDid.js";
@@ -14,7 +13,6 @@ export type SiwxSession = {
   chain: SupportedChains;
   siwx: {
     message: SignedSiwxMessage;
-    resources: Array<OrbisResources>;
     serialized: string;
     signature: string;
   };
@@ -25,34 +23,9 @@ export type KeyDidAttestation = {
   seed: string; // hexString
 };
 
-export type SiwxAttestation = {
-  type: "siwx";
-  siwx: SiwxSession["siwx"];
-};
-
-export type OrbisSession = {
-  authResource: Omit<AuthResource, "siwxResources">;
-  authAttestation: KeyDidAttestation | SiwxAttestation;
-  session: KeyDidSession | DIDSession;
-};
-
-export type SerializedOrbisSession = {
-  authResource: Omit<AuthResource, "siwxResources">;
-  authAttestation: KeyDidAttestation | SiwxAttestation;
-  session: string;
-};
-
-export type AuthResource = {
-  id: string;
-  userFriendlyName: string;
-  siwxResources: Array<string>;
-  resourceType: OrbisResources;
-};
-
-export type AuthOptions = {
-  resources: Array<AuthResource>;
-  params?: any;
-  siwxOverwrites?: Partial<SiwxMessage>;
+export type CacaoAttestation = {
+  type: "cacao";
+  cacao: Cacao;
 };
 
 export type AuthUserInformation = {
@@ -61,13 +34,23 @@ export type AuthUserInformation = {
   metadata: Record<string, any>;
 };
 
-export interface IOrbisAuth {
+export type OrbisAuthSession = {
+  attestation: KeyDidAttestation | CacaoAttestation;
+  session: DIDSession | KeyDidSession;
+  serializedSession: string;
+};
+
+export type AuthOptions = {
+  params?: any;
+  siwxOverwrites?: Partial<SiwxMessage>;
+};
+
+export interface ISiwxAuth {
   readonly orbisAuthId: string;
   readonly chain: SupportedChains;
 
   getUserInformation(): Promise<AuthUserInformation>;
   authenticateSiwx({
-    resources,
     siwxOverwrites,
     params,
   }: AuthOptions): Promise<SiwxSession>;

@@ -2,20 +2,24 @@ import { SiwxMessage } from "@didtools/cacao";
 import {
   AuthUserInformation,
   IKeyDidAuth,
-  IOrbisAuth,
-  SerializedOrbisSession,
+  ISiwxAuth,
+  OrbisAuthSession,
 } from "./auth.js";
 
 import { SupportedChains } from "./providers.js";
 
-export type OrbisConnectParams = {
-  auth: IOrbisAuth | IKeyDidAuth;
-  siwxOverwrites?: Partial<SiwxMessage>;
+export type OrbisConnectParams = (
+  | {
+      auth: ISiwxAuth | IKeyDidAuth;
+      siwxOverwrites?: Partial<SiwxMessage>;
+    }
+  | { serializedSession: string }
+) & {
   saveSession?: boolean;
 };
 
 export type OrbisConnectResult = {
-  session: SerializedOrbisSession;
+  auth: OrbisAuthSession;
   user: AuthUserInformation;
   chain: SupportedChains;
 };

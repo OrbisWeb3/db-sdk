@@ -3,7 +3,7 @@ import { normalizeProvider } from "../providers/index.js";
 import {
   AuthUserInformation,
   AuthOptions,
-  IOrbisAuth,
+  ISiwxAuth,
   SiwxSession,
 } from "../types/auth.js";
 import {
@@ -15,7 +15,7 @@ import { createOrbisSiwxMessage } from "../siwx/index.js";
 import { SignedSiwxMessage } from "../types/siwx.js";
 import { DIDPkh } from "../types/common.js";
 
-export class OrbisTezosAuth implements IOrbisAuth {
+export class OrbisTezosAuth implements ISiwxAuth {
   orbisAuthId = "orbis-tezos";
   chain = SupportedChains.tezos;
   #provider: IGenericSignerProvider;
@@ -28,7 +28,6 @@ export class OrbisTezosAuth implements IOrbisAuth {
     await this.#provider.connect();
 
     const address = await this.#provider.getAddress();
-    const publicKey = await (this.#provider as any).getPublicKey();
     // mainnet chain NetXdQprcVkpaWU
     // devnet chain NetXm8tYqnMWky1
     const did: DIDPkh = `did:pkh:tezos:NetXdQprcVkpaWU:${address}`;
@@ -39,13 +38,11 @@ export class OrbisTezosAuth implements IOrbisAuth {
       chain,
       metadata: {
         address,
-        publicKey,
       },
     };
   }
 
   async authenticateSiwx({
-    resources,
     siwxOverwrites,
     params,
   }: AuthOptions): Promise<SiwxSession> {
@@ -56,7 +53,6 @@ export class OrbisTezosAuth implements IOrbisAuth {
     const siwtMessage = (await createOrbisSiwxMessage({
       provider: this.#provider,
       chain: this.chain,
-      resources,
       siwxOverwrites,
     })) as SiwTezosMessage;
 
@@ -72,7 +68,6 @@ export class OrbisTezosAuth implements IOrbisAuth {
         message: siwtMessage as SignedSiwxMessage,
         serialized: messageToSign,
         signature,
-        resources: resources.map((v) => v.resourceType),
       },
     };
   }

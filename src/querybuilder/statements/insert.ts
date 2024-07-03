@@ -1,6 +1,6 @@
 import { validate as validateJsonSchema } from "jsonschema";
 import { StatementHistory } from "./historyProvider.js";
-import { OrbisDB, OrbisDocument } from "../../index.js";
+import { OrbisDB, CeramicDocument } from "../../index.js";
 import { catchError } from "../../util/tryit.js";
 import { OrbisError } from "../../util/results.js";
 
@@ -188,7 +188,7 @@ export class BulkInsertStatement<
       )
     ).map((result) => (result as PromiseFulfilledResult<any>).value);
 
-    const success: Array<OrbisDocument> = results.filter(
+    const success: Array<CeramicDocument> = results.filter(
       (result) => typeof result.error === "undefined"
     );
 

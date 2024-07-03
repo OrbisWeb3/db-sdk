@@ -6,6 +6,5 @@ export * from "./methods.js";
 export * from "./siwx.js";
 export * from "./auth.js";
 export * from "./common.js";
-export * from "./resources.js";
 export * from "./node.js";
 export * from "./ceramic.js";

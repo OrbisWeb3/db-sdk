@@ -3,7 +3,7 @@ import { normalizeProvider } from "../providers/index.js";
 import {
   AuthUserInformation,
   AuthOptions,
-  IOrbisAuth,
+  ISiwxAuth,
   SiwxSession,
 } from "../types/auth.js";
 import {
@@ -16,7 +16,7 @@ import { SignedSiwxMessage } from "../types/siwx.js";
 import { DIDPkh } from "../types/common.js";
 import { normalizeEVMProvider } from "../providers/evm.js";
 
-export class OrbisEVMAuth implements IOrbisAuth {
+export class OrbisEVMAuth implements ISiwxAuth {
   orbisAuthId = "orbis-evm";
   chain = SupportedChains.ethereum;
   #provider: IGenericSignerProvider;
@@ -42,7 +42,6 @@ export class OrbisEVMAuth implements IOrbisAuth {
   }
 
   async authenticateSiwx({
-    resources,
     siwxOverwrites,
     params,
   }: AuthOptions): Promise<SiwxSession> {
@@ -53,7 +52,6 @@ export class OrbisEVMAuth implements IOrbisAuth {
     const siweMessage = (await createOrbisSiwxMessage({
       provider: this.#provider,
       chain: this.chain,
-      resources,
       siwxOverwrites,
     })) as SiweMessage;
 
@@ -69,7 +67,6 @@ export class OrbisEVMAuth implements IOrbisAuth {
         message: siweMessage as SignedSiwxMessage,
         serialized: messageToSign,
         signature,
-        resources: resources.map((v) => v.resourceType),
       },
     };
   }

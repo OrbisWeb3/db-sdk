@@ -1,3 +1,19 @@
+export const encodeBase64 = (content: string): string => {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(content).toString("base64");
+  }
+
+  return btoa(content);
+};
+
+export const decodeBase64 = (content: string): string => {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(content, "base64").toString();
+  }
+
+  return atob(content);
+};
+
 export const blobToBase64 = async (blob: Blob): Promise<string> => {
   const arrayBuffer = await blob.arrayBuffer();
   if (typeof Buffer !== "undefined") {
@@ -29,3 +45,13 @@ export const base64ToBlob = async (base64: string): Promise<Blob> => {
 
   throw "[Conversion] Buffer and atob unavailable, unable to convert base64 to Blob.";
 };
+
+export const hexToUint8Array = (hex: string) =>
+  new Uint8Array(
+    (hex.match(/[\da-f]{2}/gi) as RegExpMatchArray).map((h: string) =>
+      parseInt(h, 16)
+    )
+  );
+
+export const uint8ArraytoHex = (bytes: Uint8Array) =>
+  bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, "0"), "");

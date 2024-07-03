@@ -3,36 +3,48 @@ import { AuthUserInformation, IKeyDidAuth } from "../types/auth.js";
 import { DID } from "dids";
 import { DIDAny } from "../types/common.js";
 import { createDIDKey } from "did-session";
-
-const hexToUint8Array = (hex: string) =>
-  new Uint8Array(
-    (hex.match(/[\da-f]{2}/gi) as RegExpMatchArray).map((h: string) =>
-      parseInt(h, 16)
-    )
-  );
-
-const uint8ArraytoHex = (bytes: Uint8Array) =>
-  bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, "0"), "");
+import {
+  encodeBase64,
+  uint8ArraytoHex,
+  hexToUint8Array,
+} from "../util/conversion.js";
+import { parseSerializedSession } from "../util/session.js";
 
 // Think about unifying with DIDSession from Ceramic
 export class KeyDidSession {
   #seed: string;
+  #did: DIDAny;
 
-  constructor(seed: Uint8Array | string) {
+  constructor(seed: Uint8Array | string, did: DIDAny) {
     this.#seed = typeof seed === "string" ? seed : uint8ArraytoHex(seed);
+    this.#did = did;
   }
 
   get seed() {
     return this.#seed;
   }
 
-  static fromSession(session: string) {
-    const seed = session.replace("did:key:session:", "");
-    return new KeyDidSession(seed);
+  get did() {
+    return this.#did;
+  }
+
+  static async fromSession(session: string): Promise<KeyDidSession> {
+    const sess = await parseSerializedSession(session);
+    if (sess.sessionType === "key-did") {
+      return sess.session;
+    }
+
+    throw `[KeyDidSession] Incorrect session type ${sess.sessionType}`;
   }
 
   serialize() {
-    return "did:key:session:" + this.#seed;
+    return encodeBase64(
+      JSON.stringify({
+        sessionType: "key-did",
+        did: this.#did,
+        seed: this.#seed,
+      })
+    );
   }
 }
 
@@ -58,9 +70,13 @@ export class OrbisKeyDidAuth implements IKeyDidAuth {
     return uint8ArraytoHex(seed);
   }
 
-  static async fromSession(session: string) {
-    const sess = KeyDidSession.fromSession(session);
-    return this.fromSeed(sess.seed);
+  static async fromSession(session: string | KeyDidSession) {
+    const keySession =
+      typeof session === "string"
+        ? await KeyDidSession.fromSession(session)
+        : session;
+
+    return this.fromSeed(keySession.seed);
   }
 
   static async fromSeed(seed: string | Uint8Array): Promise<IKeyDidAuth> {
@@ -83,7 +99,7 @@ export class OrbisKeyDidAuth implements IKeyDidAuth {
   async authenticateDid(): Promise<{ did: DID; session: KeyDidSession }> {
     return {
       did: this.#did,
-      session: new KeyDidSession(this.#seed),
+      session: new KeyDidSession(this.#seed, this.#did.id as DIDAny),
     };
   }
 }
