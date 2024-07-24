@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `OrbisEVMAuth`, `OrbisSolanaAuth` and `OrbisTezosAuth` now expose `authenticateDid` for decoupled DID creation
 - `get did()` added to `OrbisDB`, exposes the currently authenticated `DID`
-- new method `parseUserFromCacao: AuthUserInformation` exposed under `/utils`
+- new method `parseUserFromDid: AuthUserInformation` exposed under `/utils`
 - `OrbisKeyDidAuth.createRandom` to create a random `did:key`
   
 ## [0.0.40-alpha] - 2024-07-03
