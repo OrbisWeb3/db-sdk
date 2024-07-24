@@ -61,6 +61,10 @@ export class OrbisDB {
     return this.#ceramic;
   }
 
+  get did() {
+    return this.ceramic.did;
+  }
+
   get nodes() {
     return this.#nodes.nodes;
   }
