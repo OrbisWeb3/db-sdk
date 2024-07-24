@@ -70,6 +70,12 @@ export class OrbisKeyDidAuth implements IDidAuth {
     return uint8ArraytoHex(seed);
   }
 
+  static async createRandom(): Promise<IDidAuth> {
+    const seed = await this.generateSeed();
+
+    return this.fromSeed(seed);
+  }
+
   static async fromSession(session: string | KeyDidSession) {
     const keySession =
       typeof session === "string"
