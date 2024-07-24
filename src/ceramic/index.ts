@@ -8,18 +8,11 @@ import {
   NewCeramicDocument,
 } from "../types/ceramic.js";
 import { CeramicConfig } from "../types/constructor.js";
-import { DIDSession, createDIDCacao, createDIDKey } from "did-session";
-import { randomBytes } from "crypto";
-import {
-  Cacao,
-  SiwTezosMessage,
-  SiweMessage,
-  SiwsMessage,
-  SiwxMessage,
-} from "@didtools/cacao";
+import { DIDSession } from "did-session";
+import { SiwxMessage } from "@didtools/cacao";
 import { SupportedChains, DIDAny } from "../index.js";
 import { OrbisError } from "../util/results.js";
-import { AuthUserInformation, IKeyDidAuth, ISiwxAuth } from "../types/auth.js";
+import { IDidAuth, ISiwxAuth } from "../types/auth.js";
 import { KeyDidSession, OrbisKeyDidAuth } from "../auth/keyDid.js";
 import { StreamID } from "@ceramicnetwork/streamid";
 import { parseSerializedSession } from "../util/session.js";
@@ -63,26 +56,11 @@ export class CeramicStorage implements ICeramicStorage {
     return;
   }
 
-  #cacaoFromMessage(message: SiwxMessage, chain: SupportedChains) {
-    switch (chain) {
-      case SupportedChains.evm:
-        return Cacao.fromSiweMessage(message as SiweMessage);
-      case SupportedChains.solana:
-        return Cacao.fromSiwsMessage(message as SiwsMessage);
-      case SupportedChains.tezos:
-        return Cacao.fromSiwTezosMessage(message as SiwTezosMessage);
-      default:
-        throw new OrbisError("Unsupported chain " + chain, {
-          supportedChains: this.supportedChains,
-        });
-    }
-  }
-
   async authorize({
     authenticator,
     siwxOverwrites,
   }: {
-    authenticator: ISiwxAuth | IKeyDidAuth;
+    authenticator: ISiwxAuth | IDidAuth;
     siwxOverwrites?: Partial<SiwxMessage>;
   }): Promise<KeyDidSession | DIDSession> {
     const userInformation = await authenticator.getUserInformation();
@@ -94,71 +72,21 @@ export class CeramicStorage implements ICeramicStorage {
       );
     }
 
-    const { session, did } =
-      "authenticateDid" in authenticator
-        ? await this.#authenticateDid(authenticator)
-        : await this.#authenticateSiwx(
-            authenticator,
-            userInformation,
-            siwxOverwrites
-          );
+    const _siwxOverwrites =
+      typeof siwxOverwrites === "object"
+        ? siwxOverwrites.resources
+          ? siwxOverwrites
+          : { ...siwxOverwrites, resources: this.siwxResources }
+        : { resources: this.siwxResources };
+
+    const { session, did } = await authenticator.authenticateDid({
+      siwxOverwrites: _siwxOverwrites,
+    });
 
     this.client.setDID(did);
     this.#session = session;
 
     return this.#session;
-  }
-
-  async #authenticateDid(authenticator: IKeyDidAuth) {
-    const { did, session } = await authenticator.authenticateDid();
-
-    return {
-      did,
-      session,
-    };
-  }
-
-  async #authenticateSiwx(
-    authenticator: ISiwxAuth,
-    userInformation: AuthUserInformation,
-    siwxOverwrites?: Partial<SiwxMessage>
-  ) {
-    const keySeed = randomBytes(32);
-    const didKey = await createDIDKey(keySeed);
-
-    const session = await authenticator.authenticateSiwx({
-      siwxOverwrites: {
-        resources: this.siwxResources,
-        ...siwxOverwrites,
-        uri: didKey.id,
-        ...((userInformation.chain === SupportedChains.evm && {
-          address: userInformation.metadata.address.toLowerCase(),
-        }) ||
-          {}),
-      },
-    });
-
-    if (userInformation.chain === SupportedChains.tezos) {
-      const siwx = session.siwx.message;
-      siwx.signature = siwx.signature + userInformation.metadata.publicKey;
-      session.siwx.signature = siwx.signature;
-    }
-
-    const cacao = this.#cacaoFromMessage(
-      session.siwx.message,
-      userInformation.chain
-    );
-
-    const didSession = new DIDSession({
-      keySeed,
-      cacao,
-      did: await createDIDCacao(didKey, cacao),
-    });
-
-    return {
-      did: didSession.did,
-      session: didSession,
-    };
   }
 
   async setSession({

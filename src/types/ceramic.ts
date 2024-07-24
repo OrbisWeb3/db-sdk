@@ -3,7 +3,7 @@ import { DIDAny } from "./common.js";
 import { ModelInstanceDocument } from "@ceramicnetwork/stream-model-instance";
 
 import { SupportedChains } from "./providers.js";
-import { ISiwxAuth, AuthUserInformation, IKeyDidAuth } from "./auth.js";
+import { ISiwxAuth, AuthUserInformation, IDidAuth } from "./auth.js";
 import { SiwxMessage } from "@didtools/cacao";
 import { KeyDidSession } from "../auth/keyDid.js";
 import { DIDSession } from "did-session";
@@ -37,7 +37,7 @@ export interface ICeramicStorage {
     authenticator,
     siwxOverwrites,
   }: {
-    authenticator: ISiwxAuth | IKeyDidAuth;
+    authenticator: ISiwxAuth | IDidAuth;
     siwxOverwrites?: Partial<SiwxMessage>;
   }): Promise<any>;
 

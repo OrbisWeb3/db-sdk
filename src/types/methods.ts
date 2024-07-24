@@ -1,7 +1,7 @@
 import { SiwxMessage } from "@didtools/cacao";
 import {
   AuthUserInformation,
-  IKeyDidAuth,
+  IDidAuth,
   ISiwxAuth,
   OrbisAuthSession,
 } from "./auth.js";
@@ -10,7 +10,7 @@ import { SupportedChains } from "./providers.js";
 
 export type OrbisConnectParams = (
   | {
-      auth: ISiwxAuth | IKeyDidAuth;
+      auth: ISiwxAuth | IDidAuth;
       siwxOverwrites?: Partial<SiwxMessage>;
     }
   | { serializedSession: string }

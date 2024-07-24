@@ -1,5 +1,5 @@
 import { Cacao, SiwxMessage } from "@didtools/cacao";
-import { SupportedChains } from "./providers.js";
+import { IGenericSignerProvider, SupportedChains } from "./providers.js";
 import { SignedSiwxMessage } from "./siwx.js";
 import { DIDAny } from "./common.js";
 import { DID } from "dids";
@@ -8,8 +8,8 @@ import { DIDSession } from "did-session";
 
 export type AuthError = { error: string; details?: any };
 
-export type SiwxSession = {
-  did: string;
+export type SignedSiwx = {
+  user: AuthUserInformation;
   chain: SupportedChains;
   siwx: {
     message: SignedSiwxMessage;
@@ -45,21 +45,17 @@ export type AuthOptions = {
   siwxOverwrites?: Partial<SiwxMessage>;
 };
 
-export interface ISiwxAuth {
+export interface IDidAuth {
   readonly orbisAuthId: string;
   readonly chain: SupportedChains;
 
   getUserInformation(): Promise<AuthUserInformation>;
-  authenticateSiwx({
-    siwxOverwrites,
-    params,
-  }: AuthOptions): Promise<SiwxSession>;
+  authenticateDid: (
+    authParams?: AuthOptions
+  ) => Promise<{ did: DID; session: DIDSession | KeyDidSession }>;
 }
 
-export interface IKeyDidAuth {
-  readonly orbisAuthId: "ceramic-did";
-  readonly chain: SupportedChains;
-
-  getUserInformation(): Promise<AuthUserInformation>;
-  authenticateDid: () => Promise<{ did: DID; session: KeyDidSession }>;
+export interface ISiwxAuth extends IDidAuth {
+  provider: IGenericSignerProvider;
+  signSiwx(siwx: SiwxMessage): Promise<SignedSiwx>;
 }

@@ -1,10 +1,10 @@
-import { SiwTezosMessage } from "@didtools/cacao";
+import { SiwTezosMessage, SiwxMessage } from "@didtools/cacao";
 import { normalizeProvider } from "../providers/index.js";
 import {
   AuthUserInformation,
   AuthOptions,
   ISiwxAuth,
-  SiwxSession,
+  SignedSiwx,
 } from "../types/auth.js";
 import {
   ITezosProvider,
@@ -14,6 +14,9 @@ import {
 import { createOrbisSiwxMessage } from "../siwx/index.js";
 import { SignedSiwxMessage } from "../types/siwx.js";
 import { DIDPkh } from "../types/common.js";
+import { DID } from "dids";
+import { DIDSession } from "did-session";
+import { authenticateDidWithSiwx } from "./common.js";
 
 export class OrbisTezosAuth implements ISiwxAuth {
   orbisAuthId = "orbis-tezos";
@@ -22,6 +25,10 @@ export class OrbisTezosAuth implements ISiwxAuth {
 
   constructor(provider: ITezosProvider | IGenericSignerProvider) {
     this.#provider = normalizeProvider({ provider, chain: this.chain });
+  }
+
+  get provider() {
+    return this.#provider;
   }
 
   async getUserInformation(): Promise<AuthUserInformation> {
@@ -42,20 +49,12 @@ export class OrbisTezosAuth implements ISiwxAuth {
     };
   }
 
-  async authenticateSiwx({
-    siwxOverwrites,
-    params,
-  }: AuthOptions): Promise<SiwxSession> {
+  async signSiwx(siwx: SiwxMessage): Promise<SignedSiwx> {
     await this.#provider.connect();
 
-    const { did } = await this.getUserInformation();
+    const user = await this.getUserInformation();
 
-    const siwtMessage = (await createOrbisSiwxMessage({
-      provider: this.#provider,
-      chain: this.chain,
-      siwxOverwrites,
-    })) as SiwTezosMessage;
-
+    const siwtMessage = new SiwTezosMessage(siwx);
     const messageToSign = siwtMessage.signMessage();
 
     const signature = await this.#provider.signMessage(messageToSign);
@@ -63,12 +62,27 @@ export class OrbisTezosAuth implements ISiwxAuth {
 
     return {
       chain: this.chain,
-      did: did,
+      user,
       siwx: {
         message: siwtMessage as SignedSiwxMessage,
         serialized: messageToSign,
         signature,
       },
+    };
+  }
+
+  async authenticateDid({ siwxOverwrites, params }: AuthOptions = {}): Promise<{
+    did: DID;
+    session: DIDSession;
+  }> {
+    const { did, session } = await authenticateDidWithSiwx({
+      authenticator: this,
+      siwxOverwrites,
+    });
+
+    return {
+      did,
+      session,
     };
   }
 }

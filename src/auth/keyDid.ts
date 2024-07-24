@@ -1,5 +1,5 @@
 import { SupportedChains } from "../index.js";
-import { AuthUserInformation, IKeyDidAuth } from "../types/auth.js";
+import { AuthUserInformation, IDidAuth } from "../types/auth.js";
 import { DID } from "dids";
 import { DIDAny } from "../types/common.js";
 import { createDIDKey } from "did-session";
@@ -48,7 +48,7 @@ export class KeyDidSession {
   }
 }
 
-export class OrbisKeyDidAuth implements IKeyDidAuth {
+export class OrbisKeyDidAuth implements IDidAuth {
   orbisAuthId: "ceramic-did" = "ceramic-did";
   chain = SupportedChains.evm;
 
@@ -79,7 +79,7 @@ export class OrbisKeyDidAuth implements IKeyDidAuth {
     return this.fromSeed(keySession.seed);
   }
 
-  static async fromSeed(seed: string | Uint8Array): Promise<IKeyDidAuth> {
+  static async fromSeed(seed: string | Uint8Array): Promise<IDidAuth> {
     const parsedSeed = typeof seed === "string" ? hexToUint8Array(seed) : seed;
     const did = await createDIDKey(parsedSeed);
 
