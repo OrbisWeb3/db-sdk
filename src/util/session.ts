@@ -78,8 +78,7 @@ const didToChainEnum = {
   tezos: SupportedChains.tezos,
 } as Record<string, SupportedChains>;
 
-const parseUserFromCacao = (cacao: Cacao): AuthUserInformation => {
-  const did = cacao.p.iss as DIDAny;
+export const parseUserFromDid = (did: DIDAny): AuthUserInformation => {
   const [_did, _pkh, chain, network, address] = did.split(":");
 
   return {
@@ -89,6 +88,12 @@ const parseUserFromCacao = (cacao: Cacao): AuthUserInformation => {
       address,
     },
   };
+};
+
+const parseUserFromCacao = (cacao: Cacao): AuthUserInformation => {
+  const did = cacao.p.iss as DIDAny;
+
+  return parseUserFromDid(did);
 };
 
 export const buildOrbisSession = (
