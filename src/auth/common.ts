@@ -1,5 +1,4 @@
 import { DIDSession, createDIDCacao, createDIDKey } from "did-session";
-import { randomBytes } from "crypto";
 import {
   Cacao,
   SiwTezosMessage,
@@ -9,7 +8,8 @@ import {
 } from "@didtools/cacao";
 import { createOrbisSiwxMessage, SupportedChains } from "../index.js";
 import { OrbisError } from "../util/results.js";
-import { AuthUserInformation, ISiwxAuth } from "../types/auth.js";
+import { ISiwxAuth } from "../types/auth.js";
+import { OrbisKeyDidAuth } from "./keyDid.js";
 
 export const cacaoFromMessage = (
   message: SiwxMessage,
@@ -34,7 +34,7 @@ export const authenticateDidWithSiwx = async ({
   authenticator: ISiwxAuth;
   siwxOverwrites?: Partial<SiwxMessage>;
 }) => {
-  const keySeed = randomBytes(32);
+  const keySeed = (await OrbisKeyDidAuth.generateSeed("uint8")) as Uint8Array;
   const didKey = await createDIDKey(keySeed);
 
   const user = await authenticator.getUserInformation();
