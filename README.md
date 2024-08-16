@@ -226,7 +226,7 @@ console.log(insertStatement.runs)
 ##### Insert multiple rows
 ```typescript
 const insertStatement = await orbis
-    .bulkInsert("MODEL_ID" | "TABLE_NAME")
+    .insertBulk("MODEL_ID" | "TABLE_NAME")
     .values(
         {
             column: value,
