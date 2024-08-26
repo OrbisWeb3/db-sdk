@@ -1,8 +1,10 @@
-import { validate as validateJsonSchema } from "jsonschema";
+import Ajv from "ajv/dist/2020.js";
 import { StatementHistory } from "./historyProvider.js";
 import { OrbisDB, CeramicDocument } from "../../index.js";
 import { catchError } from "../../util/tryit.js";
 import { OrbisError } from "../../util/results.js";
+
+const ajv = new Ajv.Ajv2020();
 
 export class BulkInsertStatement<
   T = Record<string, any>,
@@ -75,14 +77,14 @@ export class BulkInsertStatement<
       }
   > {
     const model = await this.getModelId();
-    const { schema } = await this.#orbis.query.fetchModel(model);
+    const { validate } = await this.#orbis.query.fetchModel(model);
 
     const results = this.documents.map((document: T) => {
-      const result = validateJsonSchema(document, schema);
-      if (!result.valid) {
+      const isValid = validate(document);
+      if (!isValid) {
         return {
           valid: false as const,
-          error: result.errors.join(", "),
+          error: ajv.errorsText(validate.errors),
           document,
         };
       }
@@ -130,7 +132,7 @@ export class BulkInsertStatement<
 
     const timestamp = Date.now();
     const model = await this.getModelId();
-    const modelContent = await this.#orbis.query.fetchModel(model);
+    const { model: modelContent } = await this.#orbis.query.fetchModel(model);
     const accountRelation = (
       modelContent.accountRelation?.type || "list"
     ).toLowerCase();
@@ -292,13 +294,13 @@ export class InsertStatement<T = Record<string, any>> extends StatementHistory {
       }
   > {
     const model = await this.getModelId();
-    const { schema } = await this.#orbis.query.fetchModel(model);
-    const result = validateJsonSchema(this.#value, schema);
+    const { validate } = await this.#orbis.query.fetchModel(model);
+    const isValid = validate(this.#value);
 
-    if (!result.valid) {
+    if (!isValid) {
       return {
         valid: false,
-        error: result.errors.join(", "),
+        error: ajv.errorsText(validate.errors),
       };
     }
 
@@ -324,7 +326,7 @@ export class InsertStatement<T = Record<string, any>> extends StatementHistory {
 
     const timestamp = Date.now();
     const model = await this.getModelId();
-    const modelContent = await this.#orbis.query.fetchModel(model);
+    const { model: modelContent } = await this.#orbis.query.fetchModel(model);
     const accountRelation = (
       modelContent.accountRelation?.type || "list"
     ).toLowerCase();
@@ -377,3 +379,4 @@ export class InsertStatement<T = Record<string, any>> extends StatementHistory {
     return document;
   }
 }
+

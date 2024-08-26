@@ -3,6 +3,18 @@ import { SelectStatement } from "./statements/select.js";
 import { BulkInsertStatement, InsertStatement } from "./statements/insert.js";
 import * as Operators from "./statements/operators.js";
 import { UpdateByIdStatement } from "./statements/update.js";
+import * as Ajv from "ajv/dist/2020.js";
+import addAjvFormats from "ajv-formats";
+
+const ajv = new Ajv.Ajv2020({
+  strict: true,
+  allErrors: true,
+  allowMatchingProperties: false,
+  ownProperties: false,
+  unevaluated: false,
+});
+
+addAjvFormats.default(ajv);
 
 export {
   SelectStatement,
@@ -14,7 +26,10 @@ export {
 
 export class QueryBuilder {
   #orbis: OrbisDB;
-  #models: Record<string, Record<string, any>>;
+  #models: Record<
+    string,
+    { model: Record<string, any>; validate: Ajv.ValidateFunction }
+  >;
 
   select: (...columns: Array<string | any>) => SelectStatement;
   insert: (model: string) => InsertStatement;
@@ -46,8 +61,12 @@ export class QueryBuilder {
     }
 
     const { content } = await this.#orbis.ceramic.client.loadStream(model);
-    this.#models[model] = content;
+    this.#models[model] = {
+      model: content,
+      validate: ajv.compile(content.schema),
+    };
 
-    return content;
+    return this.#models[model];
   }
 }
+
