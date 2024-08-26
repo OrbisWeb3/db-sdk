@@ -93,7 +93,7 @@ This is a utility method provided by Orbis, originally implemented in Radash.
 We've modified the call signature to make it more convenient for our use case.
 
 ```typescript
-import { catchError } from "@useorbis/db-sdk"
+import { catchError } from "@useorbis/db-sdk/util"
 
 const [document, error] = await catchError(
     () => orbis.insert(...).run()
