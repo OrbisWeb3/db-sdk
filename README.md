@@ -1,10 +1,14 @@
-# @useorbis/db-sdk
- OrbisDB SDK to create, manage and query open data.
+# OrbisDB SDK
+<img src="https://github.com/user-attachments/assets/cd407120-c733-4b0b-b9e7-aa622677bb05" height="80%" width="80%" >
 
-> [!WARNING]  
-> This SDK is a work-in-progress and is being developed in parallel with the OrbisDB node.\
-> Things will change, however, the core components have been ported over from the Orbis Social SDK and should have a stable-enough interface.\
-> Find any notable or breaking changes in [CHANGELOG.md](/CHANGELOG.md).
+OrbisDB SDK is a client-side complement to OrbisDB - a relational database designed for onchain builders. 
+
+Our SDK is offering an ORM-like approach and abstracts away complexity from the development process by offering a very well-known framework (INSERT, UPDATE, SELECT). Start your project easily with a Postgres database, authentication, and signatures. 
+
+Full SDK documentation is accessible here: [Getting started](https://www.notion.so/Getting-started-12a929384dd644fd9618b2d8e62ddda9?pvs=21)
+
+> [!IMPORTANT]  
+> 🚨 OrbisDB SDK also integrates with a dashboard for easier access and management. Get an early access of our hosted service provided by Orbis: [OrbisDB Studio](https://studio.useorbis.com/).
 
 ## Installation
 
@@ -12,6 +16,11 @@ The SDK is available publicly on NPM. You can install it using your preferred pa
 
     npm install @useorbis/db-sdk
 
+> [!WARNING]  
+> This SDK is a work in progress and is being developed in parallel with the OrbisDB node.\
+> Things will change, however, the core components have been ported over from the Orbis Social SDK and should have a stable-enough interface.\
+> Find any notable or breaking changes in [CHANGELOG.md](/CHANGELOG.md).
+> 
 ## Description
 OrbisDB SDK is a client-side complement to OrbisDB - a decentralized database built on top of Ceramic.\
 It inherits the DX of our TS SDK which enables simple user authentication while providing new (more generic) methods to manipulate data.
