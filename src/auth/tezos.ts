@@ -11,7 +11,6 @@ import {
   IGenericSignerProvider,
   SupportedChains,
 } from "../types/providers.js";
-import { createOrbisSiwxMessage } from "../siwx/index.js";
 import { SignedSiwxMessage } from "../types/siwx.js";
 import { DIDPkh } from "../types/common.js";
 import { DID } from "dids";
@@ -86,3 +85,4 @@ export class OrbisTezosAuth implements ISiwxAuth {
     };
   }
 }
+
