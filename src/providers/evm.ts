@@ -4,6 +4,7 @@ import {
   SupportedChains,
 } from "../types/index.js";
 import { keccak_256 } from "@noble/hashes/sha3";
+import { catchError } from "../util/tryit.js";
 
 function uint8ToHex(uint8: Uint8Array) {
   return Array.from(uint8)
@@ -21,6 +22,13 @@ class OrbisEVMProvider implements IGenericSignerProvider {
   }
 
   async connect(): Promise<void> {
+    // Assume if we can fetch the address, we are connected
+    // Skips unnecessary request attempts with PKP provider
+    const [address, _] = await catchError(() => this.getAddress());
+    if (address) {
+      return;
+    }
+
     if (typeof this.#provider.enable === "function") {
       await this.#provider.enable();
       return;
@@ -107,3 +115,4 @@ export function normalizeEVMProvider({
 }): IGenericSignerProvider {
   return new OrbisEVMProvider(provider);
 }
+
