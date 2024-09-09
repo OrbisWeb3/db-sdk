@@ -4,6 +4,12 @@ Notable and breaking changed and additions to the SDK.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (*does not apply to alpha development*).
 
+## [0.0.54-alpha] - 2024-09-09
+
+### Changed
+- `EVM` provider assumes connection if the address is available
+- - attempt to `getAddress` before trying to `enable` or `eth_requestAccounts`
+
 ## [0.0.50-alpha] - 2024-07-24
 
 ### Changed
