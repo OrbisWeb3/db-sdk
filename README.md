@@ -8,7 +8,7 @@ Our SDK is offering an ORM-like approach and abstracts away complexity from the 
 Full SDK documentation is accessible here: [Getting started](https://www.notion.so/Getting-started-12a929384dd644fd9618b2d8e62ddda9?pvs=21)
 
 > [!IMPORTANT]  
-> 🚨 OrbisDB SDK also integrates with a dashboard for easier access and management. Get an early access of our hosted service provided by Orbis: [OrbisDB Studio](https://studio.useorbis.com/).
+> 🚨 OrbisDB SDK also integrates with a dashboard for easier access and management. Get an early access of our hosted service provided by Orbis: [OrbisDB Studio](https://app.formo.so/hJ5VGyugmGigyVFyqdHJa).
 
 ## Installation
 
