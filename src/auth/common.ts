@@ -43,10 +43,6 @@ export const authenticateDidWithSiwx = async ({
     siwxOverwrites: {
       ...siwxOverwrites,
       uri: didKey.id,
-      ...((user.chain === SupportedChains.evm && {
-        address: user.metadata.address.toLowerCase(),
-      }) ||
-        {}),
     },
     chain: authenticator.chain,
     provider: authenticator.provider,
