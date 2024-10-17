@@ -1,6 +1,6 @@
 {
   "name": "@useorbis/db-sdk",
-  "version": "0.0.54-alpha",
+  "version": "0.0.60-alpha",
   "description": "Orbis' Typescript SDK for building open-data experiences.",
   "keywords": [
     "web3",
@@ -63,4 +63,3 @@
     "uint8arrays": "^4.0.3"
   }
 }
-

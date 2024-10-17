@@ -4,6 +4,12 @@ Notable and breaking changed and additions to the SDK.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (*does not apply to alpha development*).
 
+## [0.0.60-alpha] - 2024-09-09
+
+### Changed
+- `authenticateDidWithSiwx` no longer lowercases the `address` proprety for SIWE messages
+- - should NOT cause any issues with existing MIDs (when updating)
+
 ## [0.0.54-alpha] - 2024-09-09
 
 ### Changed
